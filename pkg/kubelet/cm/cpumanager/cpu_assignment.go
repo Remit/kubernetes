@@ -138,6 +138,10 @@ func (a *cpuAccumulator) needs(n int) bool {
 	return a.numCPUsNeeded >= n
 }
 
+func (a *cpuAccumulator) needsLTEQ(n int) bool {
+	return a.numCPUsNeeded <= n
+}
+
 func (a *cpuAccumulator) isSatisfied() bool {
 	return a.numCPUsNeeded < 1
 }
@@ -146,7 +150,8 @@ func (a *cpuAccumulator) isFailed() bool {
 	return a.numCPUsNeeded > a.details.CPUs().Size()
 }
 
-func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, numCPUs int) (cpuset.CPUSet, error) {
+func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, numCPUs int, separateSockets bool) (cpuset.CPUSet, error) {
+	// TODO: check if the new arguments can be made by default
 	acc := newCPUAccumulator(topo, availableCPUs, numCPUs)
 	if acc.isSatisfied() {
 		return acc.result, nil
@@ -155,7 +160,47 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 		return cpuset.NewCPUSet(), fmt.Errorf("not enough cpus available to satisfy request")
 	}
 
-	// Algorithm: topology-aware best-fit
+	// Algorithm: topology-aware best-fit augmented with distribution of containers
+	// over sockets if needed.
+
+	// 0. Ask for free sockets and allocate free cores/CPUs
+	// only from given socket if the container can fit
+	// into the socket -> otherwise continue as is with static policy.
+	if separateSockets && acc.needsLTEQ(acc.topo.CPUsPerSocket()) {
+		freeS := acc.freeSockets()
+		s := freeS[:0] // Get first free socket -> TODO: if there is a necessity to select the socket closest to I/O, then this should be changed
+		klog.V(4).Infof("[cpumanager-augmentation] takeByTopology: claiming whole or part of socket for pinned allocation [%d]", s)
+		// a) acquire whole socket if needed
+		if acc.needs(acc.topo.CPUsPerSocket()) {
+			acc.take(acc.details.CPUsInSocket(s))
+			if acc.isSatisfied() {
+				return acc.result, nil
+			}
+		}
+
+		// b) acquire whole cores if needed
+		// TODO: acc.freeCores() and acc.freeCPUs() should be augmented too to get cores only from the particular socket
+		if acc.needs(acc.topo.CPUsPerCore()) {
+			for _, c := range acc.freeCores(s) {
+				acc.take(acc.details.CPUsInCore(c))
+				if acc.isSatisfied() {
+					return acc.result, nil
+				}
+			}
+		}
+
+		// c) acquire single threads if needed
+		// TODO: acc.freeCores() and acc.freeCPUs() should be augmented too to get cores only from the particular socket
+		for _, c := range acc.freeCPUs(s) {
+			if acc.needs(1) {
+				acc.take(cpuset.NewCPUSet(c))
+			}
+			if acc.isSatisfied() {
+				return acc.result, nil
+			}
+		}
+	}
+
 	// 1. Acquire whole sockets, if available and the container requires at
 	//    least a socket's-worth of CPUs.
 	if acc.needs(acc.topo.CPUsPerSocket()) {
