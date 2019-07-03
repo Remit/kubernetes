@@ -88,7 +88,7 @@ func NewStaticPolicy(topology *topology.CPUTopology, numReservedCPUs int) Policy
 	//
 	// For example: Given a system with 8 CPUs available and HT enabled,
 	// if numReservedCPUs=2, then reserved={0,4}
-	reserved, _ := takeByTopology(topology, allCPUs, numReservedCPUs)
+	reserved, _ := takeByTopology(topology, allCPUs, numReservedCPUs, false)
 
 	if reserved.Size() != numReservedCPUs {
 		panic(fmt.Sprintf("[cpumanager] unable to reserve the required amount of CPUs (size of %s did not equal %d)", reserved, numReservedCPUs))
@@ -182,7 +182,16 @@ func (p *staticPolicy) AddContainer(s state.State, pod *v1.Pod, container *v1.Co
 			return nil
 		}
 
-		cpuset, err := p.allocateCPUs(s, numCPUs)
+		// Augmentation starts
+		separateSockets := false
+		if val, ok := pod.Labels["socketpolicy"]; ok {
+			if val == "separate" {
+				separateSockets = true
+			}
+		}
+		// Augmentation ends
+
+		cpuset, err := p.allocateCPUs(s, numCPUs, separateSockets)
 		if err != nil {
 			klog.Errorf("[cpumanager] unable to allocate %d CPUs (container id: %s, error: %v)", numCPUs, containerID, err)
 			return err
@@ -203,9 +212,9 @@ func (p *staticPolicy) RemoveContainer(s state.State, containerID string) error 
 	return nil
 }
 
-func (p *staticPolicy) allocateCPUs(s state.State, numCPUs int) (cpuset.CPUSet, error) {
+func (p *staticPolicy) allocateCPUs(s state.State, numCPUs int, separateSockets bool) (cpuset.CPUSet, error) {
 	klog.Infof("[cpumanager] allocateCpus: (numCPUs: %d)", numCPUs)
-	result, err := takeByTopology(p.topology, p.assignableCPUs(s), numCPUs)
+	result, err := takeByTopology(p.topology, p.assignableCPUs(s), numCPUs, separateSockets)
 	if err != nil {
 		return cpuset.NewCPUSet(), err
 	}

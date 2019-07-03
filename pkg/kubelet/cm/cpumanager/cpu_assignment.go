@@ -68,8 +68,24 @@ func (a *cpuAccumulator) freeSockets() []int {
 // - the number of whole available cores on the socket, ascending
 // - socket ID, ascending
 // - core ID, ascending
-func (a *cpuAccumulator) freeCores() []int {
+func (a *cpuAccumulator) freeCores(socketID int) []int {
 	socketIDs := a.details.Sockets().ToSliceNoSort()
+
+	// Augmentation starts: search for free cores is conducted only for the given socket
+	intInSlice := func(a int, aa []int) bool {
+		for _, b := range aa {
+			if b == a {
+				return true
+			}
+		}
+		return false
+	}
+
+	if (socketID > -1) && (intInSlice(socketID, socketIDs)) {
+		socketIDs = []int{socketID}
+	}
+	// Augmentation ends
+
 	sort.Slice(socketIDs,
 		func(i, j int) bool {
 			iCores := a.details.CoresInSocket(socketIDs[i]).Filter(a.isCoreFree)
@@ -90,9 +106,32 @@ func (a *cpuAccumulator) freeCores() []int {
 // - number of CPUs available on the same core
 // - socket ID.
 // - core ID.
-func (a *cpuAccumulator) freeCPUs() []int {
+func (a *cpuAccumulator) freeCPUs(socketID int) []int {
 	result := []int{}
 	cores := a.details.Cores().ToSlice()
+
+	// Augmentation starts: search for free CPUs is conducted only for the cores
+	// that are on chip in the given socket
+	filter := func(aa []int, test func(int) bool) (ret []int) {
+		for _, a := range aa {
+			if test(a) {
+				ret = append(ret, a)
+			}
+		}
+
+		return
+	}
+
+	filterBySocketID := func(core int) bool {
+		CPUs := a.topo.CPUDetails.CPUsInCore(core).ToSlice()
+		curSocketID := a.topo.CPUDetails[CPUs[0]].SocketID
+		return curSocketID == socketID
+	}
+
+	if socketID > -1 {
+		cores = filter(cores, filterBySocketID)
+	}
+	// Augmentation ends
 
 	sort.Slice(
 		cores,
@@ -168,7 +207,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 	// into the socket -> otherwise continue as is with static policy.
 	if separateSockets && acc.needsLTEQ(acc.topo.CPUsPerSocket()) {
 		freeS := acc.freeSockets()
-		s := freeS[:0] // Get first free socket -> TODO: if there is a necessity to select the socket closest to I/O, then this should be changed
+		s := freeS[0] // Get first free socket -> TODO: if there is a necessity to select the socket closest to I/O, then this should be changed
 		klog.V(4).Infof("[cpumanager-augmentation] takeByTopology: claiming whole or part of socket for pinned allocation [%d]", s)
 		// a) acquire whole socket if needed
 		if acc.needs(acc.topo.CPUsPerSocket()) {
@@ -179,7 +218,6 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 		}
 
 		// b) acquire whole cores if needed
-		// TODO: acc.freeCores() and acc.freeCPUs() should be augmented too to get cores only from the particular socket
 		if acc.needs(acc.topo.CPUsPerCore()) {
 			for _, c := range acc.freeCores(s) {
 				acc.take(acc.details.CPUsInCore(c))
@@ -190,7 +228,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 		}
 
 		// c) acquire single threads if needed
-		// TODO: acc.freeCores() and acc.freeCPUs() should be augmented too to get cores only from the particular socket
+		// TODO: acc.freeCPUs() should be augmented too to get cores only from the particular socket
 		for _, c := range acc.freeCPUs(s) {
 			if acc.needs(1) {
 				acc.take(cpuset.NewCPUSet(c))
@@ -219,7 +257,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 	// 2. Acquire whole cores, if available and the container requires at least
 	//    a core's-worth of CPUs.
 	if acc.needs(acc.topo.CPUsPerCore()) {
-		for _, c := range acc.freeCores() {
+		for _, c := range acc.freeCores(-1) {
 			klog.V(4).Infof("[cpumanager] takeByTopology: claiming core [%d]", c)
 			acc.take(acc.details.CPUsInCore(c))
 			if acc.isSatisfied() {
@@ -234,7 +272,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 	// 3. Acquire single threads, preferring to fill partially-allocated cores
 	//    on the same sockets as the whole cores we have already taken in this
 	//    allocation.
-	for _, c := range acc.freeCPUs() {
+	for _, c := range acc.freeCPUs(-1) {
 		klog.V(4).Infof("[cpumanager] takeByTopology: claiming CPU [%d]", c)
 		if acc.needs(1) {
 			acc.take(cpuset.NewCPUSet(c))

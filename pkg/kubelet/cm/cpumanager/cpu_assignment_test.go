@@ -131,7 +131,7 @@ func TestCPUAccumulatorFreeCores(t *testing.T) {
 
 	for _, tc := range testCases {
 		acc := newCPUAccumulator(tc.topo, tc.availableCPUs, 0)
-		result := acc.freeCores()
+		result := acc.freeCores(-1)
 		if !reflect.DeepEqual(result, tc.expect) {
 			t.Errorf("[%s] expected %v to equal %v", tc.description, result, tc.expect)
 		}
@@ -179,7 +179,7 @@ func TestCPUAccumulatorFreeCPUs(t *testing.T) {
 
 	for _, tc := range testCases {
 		acc := newCPUAccumulator(tc.topo, tc.availableCPUs, 0)
-		result := acc.freeCPUs()
+		result := acc.freeCPUs(-1)
 		if !reflect.DeepEqual(result, tc.expect) {
 			t.Errorf("[%s] expected %v to equal %v", tc.description, result, tc.expect)
 		}
@@ -374,7 +374,7 @@ func TestTakeByTopology(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result, err := takeByTopology(tc.topo, tc.availableCPUs, tc.numCPUs)
+		result, err := takeByTopology(tc.topo, tc.availableCPUs, tc.numCPUs, false)
 		if tc.expErr != "" && err.Error() != tc.expErr {
 			t.Errorf("expected error to be [%v] but it was [%v] in test \"%s\"", tc.expErr, err, tc.description)
 		}
