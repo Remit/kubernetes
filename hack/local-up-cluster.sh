@@ -767,6 +767,7 @@ function start_kubelet {
       "--pod-manifest-path=${POD_MANIFEST_PATH}"
       "--fail-swap-on=${FAIL_SWAP_ON}"
       "--cpu-manager-policy=static"
+      "--kube-reserved=cpu=300m,memory=300Mi,ephemeral-storage=1Gi"
       ${auth_args[@]+"${auth_args[@]}"}
       ${dns_args[@]+"${dns_args[@]}"}
       ${cni_conf_dir_args[@]+"${cni_conf_dir_args[@]}"}
