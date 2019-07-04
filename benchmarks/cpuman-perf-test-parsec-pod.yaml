@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: parsec-pod
+  labels:
+    socketpolicy: separate
+spec:
+  containers:
+    # See https://github.com/Spirals-Team/benchmark-containers/tree/master/parsec-3.0 for more information on image.
+  - image: spirals/parsec-3.0
+    command: ["/bin/bash"]
+    # Change args to run the workload.
+    args: ["parsecmgmt -a run -i simsmall -n 1"]
+    name: parsec-ctn
+    resources:
+      requests:
+        # Note: CPU request and limit should be same.
+        cpu: "1"
+        memory: "4Gi"
+      limits:
+        # Note: CPU request and limit should be same.
+        cpu: "1"
+        memory: "4Gi"
+  restartPolicy: "Never"
+  # Borrowed from https://gist.github.com/balajismaniam/fac7923f6ee44f1f36969c29354e3902
