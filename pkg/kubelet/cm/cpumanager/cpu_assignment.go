@@ -177,8 +177,8 @@ func (a *cpuAccumulator) needs(n int) bool {
 	return a.numCPUsNeeded >= n
 }
 
-func (a *cpuAccumulator) needsLTEQ(n int) bool {
-	return a.numCPUsNeeded <= n
+func (a *cpuAccumulator) needsLT(n int) bool {
+	return a.numCPUsNeeded < n
 }
 
 func (a *cpuAccumulator) isSatisfied() bool {
@@ -205,7 +205,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 	// 0. Ask for free sockets and allocate free cores/CPUs
 	// only from given socket if the container can fit
 	// into the socket -> otherwise continue as is with static policy.
-	if separateSockets && acc.needsLTEQ(acc.topo.CPUsPerSocket()) {
+	if separateSockets && acc.needsLT(acc.topo.CPUsPerSocket()) {
 		freeS := acc.freeSockets()
 		s := freeS[0] // Get first free socket -> TODO: if there is a necessity to select the socket closest to I/O, then this should be changed
 		klog.V(4).Infof("[cpumanager-augmentation] takeByTopology: claiming whole or part of socket for pinned allocation [%d]", s)
