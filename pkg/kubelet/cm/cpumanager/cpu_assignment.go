@@ -24,6 +24,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/topology"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	cmutil "k8s.io/kubernetes/pkg/kubelet/cm/util"
 )
 
 type cpuAccumulator struct {
@@ -42,8 +43,19 @@ func newCPUAccumulator(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, 
 	}
 }
 
-func (a *cpuAccumulator) take(cpus cpuset.CPUSet) {
-	a.result = a.result.Union(cpus)
+func (a *cpuAccumulator) take(cpus cpuset.CPUSet, numaAware bool, topoNUMA *cmutil.NUMATopology) {
+	// Augmentation begins:
+	cpusetCloned := cpuset.Clone()
+	if numaAware {
+		// 1) find mem ids from same node
+		associatedMems := topoNUMA.MemsForCPUs(cpus)
+		// 2) add mem ids as memelements to cpus
+		addedMemCpuset := cpuset.NewCPUSetWithMem(associatedMems)
+		cpusetCloned = cpusetCloned.Union(addedMemCpuset)
+	}
+	// Augmentation ends
+
+	a.result = a.result.Union(cpusetCloned)
 	a.details = a.details.KeepOnly(a.details.CPUs().Difference(a.result))
 	a.numCPUsNeeded -= cpus.Size()
 }
@@ -189,7 +201,7 @@ func (a *cpuAccumulator) isFailed() bool {
 	return a.numCPUsNeeded > a.details.CPUs().Size()
 }
 
-func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, numCPUs int, separateSockets bool) (cpuset.CPUSet, error) {
+func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, numCPUs int, separateSockets bool, numaAware bool, topoNUMA *cmutil.NUMATopology) (cpuset.CPUSet, error) {
 	// TODO: check if the new arguments can be made by default
 	acc := newCPUAccumulator(topo, availableCPUs, numCPUs)
 	if acc.isSatisfied() {
@@ -211,7 +223,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 		klog.V(4).Infof("[cpumanager-augmentation] takeByTopology: claiming whole or part of socket for pinned allocation [%d]", s)
 		// a) acquire whole socket if needed
 		if acc.needs(acc.topo.CPUsPerSocket()) {
-			acc.take(acc.details.CPUsInSocket(s))
+			acc.take(acc.details.CPUsInSocket(s), numaAware, topoNUMA)
 			if acc.isSatisfied() {
 				return acc.result, nil
 			}
@@ -220,7 +232,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 		// b) acquire whole cores if needed
 		if acc.needs(acc.topo.CPUsPerCore()) {
 			for _, c := range acc.freeCores(s) {
-				acc.take(acc.details.CPUsInCore(c))
+				acc.take(acc.details.CPUsInCore(c), numaAware, topoNUMA)
 				if acc.isSatisfied() {
 					return acc.result, nil
 				}
@@ -231,7 +243,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 		// TODO: acc.freeCPUs() should be augmented too to get cores only from the particular socket
 		for _, c := range acc.freeCPUs(s) {
 			if acc.needs(1) {
-				acc.take(cpuset.NewCPUSet(c))
+				acc.take(cpuset.NewCPUSet(c), numaAware, topoNUMA)
 			}
 			if acc.isSatisfied() {
 				return acc.result, nil
@@ -244,7 +256,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 	if acc.needs(acc.topo.CPUsPerSocket()) {
 		for _, s := range acc.freeSockets() {
 			klog.V(4).Infof("[cpumanager] takeByTopology: claiming socket [%d]", s)
-			acc.take(acc.details.CPUsInSocket(s))
+			acc.take(acc.details.CPUsInSocket(s), numaAware, topoNUMA)
 			if acc.isSatisfied() {
 				return acc.result, nil
 			}
@@ -259,7 +271,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 	if acc.needs(acc.topo.CPUsPerCore()) {
 		for _, c := range acc.freeCores(-1) {
 			klog.V(4).Infof("[cpumanager] takeByTopology: claiming core [%d]", c)
-			acc.take(acc.details.CPUsInCore(c))
+			acc.take(acc.details.CPUsInCore(c), numaAware, topoNUMA)
 			if acc.isSatisfied() {
 				return acc.result, nil
 			}
@@ -275,7 +287,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 	for _, c := range acc.freeCPUs(-1) {
 		klog.V(4).Infof("[cpumanager] takeByTopology: claiming CPU [%d]", c)
 		if acc.needs(1) {
-			acc.take(cpuset.NewCPUSet(c))
+			acc.take(cpuset.NewCPUSet(c), numaAware, topoNUMA)
 		}
 		if acc.isSatisfied() {
 			return acc.result, nil

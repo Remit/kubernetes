@@ -38,6 +38,7 @@ func NewBuilder() Builder {
 	return Builder{
 		result: CPUSet{
 			elems: map[int]struct{}{},
+			memelems: map[int]struct{}{},
 		},
 	}
 }
@@ -53,6 +54,19 @@ func (b Builder) Add(elems ...int) {
 	}
 }
 
+// Augmentation begins:
+// MemAdd adds the supplied memelements to the result. Calling Add after calling
+// Result has no effect.
+func (b Builder) MemAdd(memelems ...int) {
+	if b.done {
+		return
+	}
+	for _, memelem := range memelems {
+		b.result.memelems[memelem] = struct{}{}
+	}
+}
+// Augmentation ends
+
 // Result returns the result CPUSet containing all elements that were
 // previously added to this builder. Subsequent calls to Add have no effect.
 func (b Builder) Result() CPUSet {
@@ -60,9 +74,10 @@ func (b Builder) Result() CPUSet {
 	return b.result
 }
 
-// CPUSet is a thread-safe, immutable set-like data structure for CPU IDs.
+// CPUSet is a thread-safe, immutable set-like data structure for CPU and memory IDs.
 type CPUSet struct {
 	elems map[int]struct{}
+	memelems map[int]struct{}
 }
 
 // NewCPUSet returns a new CPUSet containing the supplied elements.
@@ -73,6 +88,17 @@ func NewCPUSet(cpus ...int) CPUSet {
 	}
 	return b.Result()
 }
+
+// Augmentation begins:
+// NewCPUSetWithMem returns a new CPUSet containing the supplied elements.
+func NewCPUSetWithMem(mems []int) CPUSet {
+	b := NewBuilder()
+	for _, m := range mems {
+		b.MemAdd(m)
+	}
+	return b.Result()
+}
+// Augmentation ends
 
 // Size returns the number of elements in this set.
 func (s CPUSet) Size() int {
@@ -144,6 +170,16 @@ func (s CPUSet) Union(s2 CPUSet) CPUSet {
 	for cpu := range s2.elems {
 		b.Add(cpu)
 	}
+
+	//Augmentation begins
+	for mem := range s.memelems {
+		b.MemAdd(mem)
+	}
+	for mem := range s2.memelems {
+		b.MemAdd(mem)
+	}
+	//Augmentation ends
+
 	return b.Result()
 }
 
@@ -187,6 +223,19 @@ func (s CPUSet) ToSlice() []int {
 	sort.Ints(result)
 	return result
 }
+
+// Augmentation begins:
+// MemToSlice returns a slice of integers that contains all memelements from
+// this set.
+func (s CPUSet) MemToSlice() []int {
+	result := []int{}
+	for mem := range s.memelems {
+		result = append(result, mem)
+	}
+	sort.Ints(result)
+	return result
+}
+// Augmentation ends
 
 // ToSliceNoSort returns a slice of integers that contains all elements from
 // this set.
@@ -240,6 +289,51 @@ func (s CPUSet) String() string {
 	}
 	return strings.TrimRight(result.String(), ",")
 }
+
+// Augmentation begins:
+// String returns a new string representation of the elements in this CPU set
+// in canonical linux Memory list format.
+//
+// See: http://man7.org/linux/man-pages/man7/cpuset.7.html#FORMATS
+func (s CPUSet) Memstring() string {
+	if s.IsEmpty() {
+		return ""
+	}
+
+	elems := s.MemToSlice()
+
+	type rng struct {
+		start int
+		end   int
+	}
+
+	ranges := []rng{{elems[0], elems[0]}}
+
+	for i := 1; i < len(elems); i++ {
+		lastRange := &ranges[len(ranges)-1]
+		// if this element is adjacent to the high end of the last range
+		if elems[i] == lastRange.end+1 {
+			// then extend the last range to include this element
+			lastRange.end = elems[i]
+			continue
+		}
+		// otherwise, start a new range beginning with this element
+		ranges = append(ranges, rng{elems[i], elems[i]})
+	}
+
+	// construct string from ranges
+	var result bytes.Buffer
+	for _, r := range ranges {
+		if r.start == r.end {
+			result.WriteString(strconv.Itoa(r.start))
+		} else {
+			result.WriteString(fmt.Sprintf("%d-%d", r.start, r.end))
+		}
+		result.WriteString(",")
+	}
+	return strings.TrimRight(result.String(), ",")
+}
+// Augmentation ends
 
 // MustParse CPUSet constructs a new CPU set from a Linux CPU list formatted
 // string. Unlike Parse, it does not return an error but rather panics if the
@@ -301,6 +395,9 @@ func (s CPUSet) Clone() CPUSet {
 	b := NewBuilder()
 	for elem := range s.elems {
 		b.Add(elem)
+	}
+	for memelem := range s.memelems {
+		b.MemAdd(memelem)
 	}
 	return b.Result()
 }

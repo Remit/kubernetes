@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/status"
+	cmutil "k8s.io/kubernetes/pkg/kubelet/cm/util"
 )
 
 // ActivePodsFunc is a function that returns a list of pods to reconcile.
@@ -97,7 +98,7 @@ type manager struct {
 var _ Manager = &manager{}
 
 // NewManager creates new cpu manager based on provided policy
-func NewManager(cpuPolicyName string, reconcilePeriod time.Duration, machineInfo *cadvisorapi.MachineInfo, nodeAllocatableReservation v1.ResourceList, stateFileDirectory string) (Manager, error) {
+func NewManager(cpuPolicyName string, reconcilePeriod time.Duration, machineInfo *cadvisorapi.MachineInfo, nodeAllocatableReservation v1.ResourceList, stateFileDirectory string, topoNUMA *cmutil.NUMATopology) (Manager, error) {
 	var policy Policy
 
 	switch policyName(cpuPolicyName) {
@@ -106,6 +107,9 @@ func NewManager(cpuPolicyName string, reconcilePeriod time.Duration, machineInfo
 		policy = NewNonePolicy()
 
 	case PolicyStatic:
+		// Augmentation begins
+		klog.Infof("[cpumanager] took host NUMA topology: %v", topoNUMA)
+		// Augmentation ends
 		topo, err := topology.Discover(machineInfo)
 		if err != nil {
 			return nil, err
@@ -129,7 +133,7 @@ func NewManager(cpuPolicyName string, reconcilePeriod time.Duration, machineInfo
 		// exclusively allocated.
 		reservedCPUsFloat := float64(reservedCPUs.MilliValue()) / 1000
 		numReservedCPUs := int(math.Ceil(reservedCPUsFloat))
-		policy = NewStaticPolicy(topo, numReservedCPUs)
+		policy = NewStaticPolicy(topo, numReservedCPUs, topoNUMA)
 
 	default:
 		klog.Errorf("[cpumanager] Unknown policy \"%s\", falling back to default policy \"%s\"", cpuPolicyName, PolicyNone)
@@ -318,5 +322,6 @@ func (m *manager) updateContainerCPUSet(containerID string, cpus cpuset.CPUSet) 
 		containerID,
 		&runtimeapi.LinuxContainerResources{
 			CpusetCpus: cpus.String(),
+			CpusetMems: cpus.Memstring(),
 		})
 }

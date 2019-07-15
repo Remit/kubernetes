@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/state"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/topology"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	cmutil "k8s.io/kubernetes/pkg/kubelet/cm/util"
 )
 
 // PolicyStatic is the name of the static policy
@@ -73,6 +74,11 @@ type staticPolicy struct {
 	topology *topology.CPUTopology
 	// set of CPUs that is not available for exclusive assignment
 	reserved cpuset.CPUSet
+
+	//Augmentation begins:
+	// topology of NUMA nodes
+	topoNUMA *cmutil.NUMATopology
+	//Augmentation ends
 }
 
 // Ensure staticPolicy implements Policy interface
@@ -81,7 +87,7 @@ var _ Policy = &staticPolicy{}
 // NewStaticPolicy returns a CPU manager policy that does not change CPU
 // assignments for exclusively pinned guaranteed containers after the main
 // container process starts.
-func NewStaticPolicy(topology *topology.CPUTopology, numReservedCPUs int) Policy {
+func NewStaticPolicy(topology *topology.CPUTopology, numReservedCPUs int, topoNUMA *cmutil.NUMATopology) Policy {
 	allCPUs := topology.CPUDetails.CPUs()
 	// takeByTopology allocates CPUs associated with low-numbered cores from
 	// allCPUs.
@@ -99,6 +105,7 @@ func NewStaticPolicy(topology *topology.CPUTopology, numReservedCPUs int) Policy
 	return &staticPolicy{
 		topology: topology,
 		reserved: reserved,
+		topoNUMA: topoNUMA,
 	}
 }
 
@@ -191,7 +198,16 @@ func (p *staticPolicy) AddContainer(s state.State, pod *v1.Pod, container *v1.Co
 		}
 		// Augmentation ends
 
-		cpuset, err := p.allocateCPUs(s, numCPUs, separateSockets)
+		// Augmentation starts
+		numaAware := false
+		if val, ok := pod.Labels["numapolicy"]; ok {
+			if val == "numaaware" {
+				numaAware = true
+			}
+		}
+		// Augmentation ends
+
+		cpuset, err := p.allocateCPUs(s, numCPUs, separateSockets, numaAware)
 		if err != nil {
 			klog.Errorf("[cpumanager] unable to allocate %d CPUs (container id: %s, error: %v)", numCPUs, containerID, err)
 			return err
@@ -212,9 +228,9 @@ func (p *staticPolicy) RemoveContainer(s state.State, containerID string) error 
 	return nil
 }
 
-func (p *staticPolicy) allocateCPUs(s state.State, numCPUs int, separateSockets bool) (cpuset.CPUSet, error) {
+func (p *staticPolicy) allocateCPUs(s state.State, numCPUs int, separateSockets bool, numaAware bool) (cpuset.CPUSet, error) {
 	klog.Infof("[cpumanager] allocateCpus: (numCPUs: %d)", numCPUs)
-	result, err := takeByTopology(p.topology, p.assignableCPUs(s), numCPUs, separateSockets)
+	result, err := takeByTopology(p.topology, p.assignableCPUs(s), numCPUs, separateSockets, numaAware, p.topoNUMA)
 	if err != nil {
 		return cpuset.NewCPUSet(), err
 	}

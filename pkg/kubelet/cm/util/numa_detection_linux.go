@@ -22,6 +22,7 @@ import (
   "strconv"
 
   "k8s.io/kubernetes/pkg/util/filesystem"
+  "k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
 func makeRange(min, max int) []int {
@@ -56,6 +57,31 @@ type NUMADetails map[int]NUMANodeInfo
 type NUMATopology struct {
 	NumNodes		int
 	NUMADetails	NUMADetails
+}
+
+// MemsForCPUs returns the slice of memory nodes IDs
+// which are on the same NUMA node as cpus
+func (t NUMATopology) MemsForCPUs(cpus cpuset.CPUSet) int[] {
+  memnodesIDs := []int{}
+  addMems := make([]bool, len(t.NUMADetails))
+
+  for i, nodeInfo := range t.NUMADetails {
+    nodeCPUs := nodeInfo.CPUs
+    for _, nodeCPUID := range nodeCPUs {
+      if cpus.Contains(nodeCPUID) {
+        addMems[i] = true
+        break
+      }
+    }
+  }
+
+  for i, addMemCheck := range addMems {
+    if addMemCheck {
+      memnodesIDs = append(memnodesIDs, t.NUMADetails[i].Mems)
+    }
+  }
+
+	return memnodesIDs
 }
 
 // GetNUMANodeSubnodes gets ids of resource subnodes for the given NUMA node
