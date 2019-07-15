@@ -263,6 +263,16 @@ func NewContainerManager(mountUtil mount.Interface, cadvisorInterface cadvisor.I
 		// This way, all sub modules can avoid having to understand the concept of node allocatable.
 		cgroupRoot = NewCgroupName(cgroupRoot, defaultNodeAllocatableCgroupName)
 	}
+
+	// Augmentation begins: filling in NUMA Topology
+	klog.Infof("Getting NUMA topology informtion")
+	topoNUMA, err := cmutil.GetNUMATopology()
+
+	if err != nil {
+		return nil, err
+	}
+	// Augmentation ends
+
 	klog.Infof("Creating Container Manager object based on Node Config: %+v", nodeConfig)
 
 	qosContainerManager, err := NewQOSContainerManager(subsystems, cgroupRoot, nodeConfig, cgroupManager)
@@ -301,6 +311,7 @@ func NewContainerManager(mountUtil mount.Interface, cadvisorInterface cadvisor.I
 			machineInfo,
 			cm.GetNodeAllocatableReservation(),
 			nodeConfig.KubeletRootDir,
+			topoNUMA,
 		)
 		if err != nil {
 			klog.Errorf("failed to initialize cpu manager: %v", err)
