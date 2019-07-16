@@ -97,7 +97,7 @@ func (t NUMATopology) MemsForCPUs(cpus cpuset.CPUSet) []int {
 
   for i, addMemCheck := range addMems {
     if addMemCheck {
-      memnodesIDs = memnodesIDs, t.NUMADetails[i].Mems
+      memnodesIDs = t.NUMADetails[i].Mems
     }
   }
 
@@ -177,6 +177,7 @@ func GetNUMATopology() (*NUMATopology, error) {
     return strings.Contains(rawName, nodeStrPrefix)
   }
 
+  numaDetailsAr := make([]NUMADetails, len(nodesNames))
   nodesNames := filter(nodeDirContents, filterByName)
   prefixLen := len(nodeStrPrefix)
   for _, nodeNameFI := range nodesNames {
@@ -197,7 +198,7 @@ func GetNUMATopology() (*NUMATopology, error) {
       		return nil, err
       	}
 
-        NUMADetails[nodeID] = NUMANodeInfo{
+        numaDetailsAr[nodeID] = NUMANodeInfo{
           CPUs:   nodeCPUs,
           Mems:   nodeMems,
         }
