@@ -25,14 +25,6 @@ import (
   "k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
-func makeRange(min, max int) []int {
-  a := make([]int, max-min+1)
-  for i := range a {
-      a[i] = min + i
-  }
-  return a
-}
-
 func filter(aa []os.FileInfo, test func(os.FileInfo) bool) (ret []os.FileInfo) {
   for _, a := range aa {
     if test(a) {
@@ -59,8 +51,34 @@ type NUMATopology struct {
 	NUMADetails	NUMADetails
 }
 
+// GetColocatedCPUs returns the slice of CPUs IDs
+// which are on the same NUMA node as cpus
+func (t NUMATopology) GetColocatedCPUs(cpus cpuset.CPUSet) int[] {
+  cpusIDs := []int{}
+  addCPUs := make([]bool, len(t.NUMADetails))
+
+  for i, nodeInfo := range t.NUMADetails {
+    nodeCPUs := nodeInfo.CPUs
+    for _, nodeCPUID := range nodeCPUs {
+      if cpus.Contains(nodeCPUID) {
+        addCPUs[i] = true
+        break
+      }
+    }
+  }
+
+  for i, addCPUCheck := range addCPUs {
+    if addCPUCheck {
+      cpusIDs = append(cpusIDs, t.NUMADetails[i].CPUs)
+    }
+  }
+
+  return cpusIDs
+}
+
 // MemsForCPUs returns the slice of memory nodes IDs
 // which are on the same NUMA node as cpus
+// TODO: consider returning cpuset.CPUSet -> usage needs to be modified too
 func (t NUMATopology) MemsForCPUs(cpus cpuset.CPUSet) int[] {
   memnodesIDs := []int{}
   addMems := make([]bool, len(t.NUMADetails))
@@ -87,7 +105,7 @@ func (t NUMATopology) MemsForCPUs(cpus cpuset.CPUSet) int[] {
 // GetNUMANodeSubnodes gets ids of resource subnodes for the given NUMA node
 func GetNUMANodeSubnodes(nodeID int, resourceName string) (int[], error) {
   nodeDir := "/sys/devices/system/node/node" + strconv.Itoa(nodeID) + "/"
-  nodeDirContents, err := Filesystem.ReadDir(nodeDir)
+  nodeDirContents, err := filesystem.Filesystem.ReadDir(nodeDir)
 
   if err != nil {
     klog.Errorf("could not read the contents of directory %s for the resource %s",
@@ -143,7 +161,7 @@ func GetNUMANodeMems(nodeID int) (int[], error) {
 func GetNUMATopology() (*NUMATopology, error) {
   nodeStrPrefix := "node"
   dirForNodes := "/sys/devices/system/node/"
-  nodeDirContents, err := Filesystem.ReadDir(dirForNodes)
+  nodeDirContents, err := filesystem.Filesystem.ReadDir(dirForNodes)
 
   if err != nil {
     klog.Errorf("could not read the contents of directory %s",

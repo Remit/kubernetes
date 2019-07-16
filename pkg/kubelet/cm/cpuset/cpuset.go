@@ -98,6 +98,15 @@ func NewCPUSetWithMem(mems []int) CPUSet {
 	}
 	return b.Result()
 }
+
+// NewCPUSetFromSlice returns a new CPUSet containing the supplied elements (from slice)
+func NewCPUSetFromSlice(cpus []int) CPUSet {
+	b := NewBuilder()
+	for _, c := range cpus {
+		b.Add(c)
+	}
+	return b.Result()
+}
 // Augmentation ends
 
 // Size returns the number of elements in this set.

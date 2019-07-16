@@ -21,6 +21,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"os"
+	"strconv"
 
 	"k8s.io/klog"
 
@@ -34,6 +36,8 @@ import (
 	v1qos "k8s.io/kubernetes/pkg/apis/core/v1/helper/qos"
 	kubefeatures "k8s.io/kubernetes/pkg/features"
 	cmutil "k8s.io/kubernetes/pkg/kubelet/cm/util"
+	"k8s.io/kubernetes/pkg/util/filesystem"
+	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
 const (
@@ -196,9 +200,149 @@ func (m *qosContainerManagerImpl) setCPUCgroupConfig(configs map[v1.PodQOSClass]
 }
 
 // Augmentation starts:
+func filter(aa []os.FileInfo, test func(os.FileInfo) bool) (ret []os.FileInfo) {
+  for _, a := range aa {
+    if test(a) {
+      ret = append(ret, a)
+    }
+  }
+
+  return
+}
+
 func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSClass]*CgroupConfig) error {
 	// TODO: ask for mem??? like in  setMemoryReserve ?
+	// TODO: add default case: no NUMA -> nils
 	pods := m.activePods()
+
+	// For each pod...
+	for i := range pods {
+		// Getting the settings for the given pod...
+		pod := pods[i]
+
+		// Checking if we can apply the algorithm to the current pod
+		numaAware := false
+		if val, ok := pod.Labels["numapolicy"]; ok {
+			if val == "numaaware" {
+				numaAware = true
+			}
+		}
+
+		if numaAware {
+			// Checking if we need to prioritize placing of threads on NUMA nodes where their stack is
+			stackBound := false
+			if val, ok := pod.Labels["stackbound"]; ok {
+				if val == "true" {
+					stackBound = true
+				}
+			}
+
+			// For each pod's container...
+			for _, containerStatus := range pod.Status.ContainerStatuses {
+				// 1. Extract IDs of containers of each pod
+				containerIDRaw := containerStatus.ContainerID
+				prefixLen := len("docker://")
+				containerID := containerIDRaw[ prefixLen : ]
+
+				// 2. Getting task IDs for the container based on container id
+				cgroupContainersDir := "/sys/fs/cgroup/cpu/docker/"
+			  cgroupContainersDirContents, err := filesystem.Filesystem.ReadDir(cgroupContainersDir)
+
+				if err != nil {
+					return err
+				}
+
+				filterByContainerID := func(fileInfoEntry os.FileInfo) bool {
+			    rawName := fileInfoEntry.Name()
+			    return strings.Contains(rawName, containerID)
+			  }
+
+			  cgroupContainersSubdirs := filter(cgroupContainersDirContents, filterByContainerID)
+
+				for _, cgroupContainersSubdir := range cgroupContainersSubdirs {
+					rawName := cgroupContainersSubdir.Name()
+					tasksFileName := rawName + "/tasks"
+
+					tasksBytesRaw, err := filesystem.Filesystem.ReadFile(tasksFileName)
+					if err != nil {
+						return err
+					}
+
+					tasksStringRaw := string(tasksBytesRaw)
+					taskIDs := strings.Split(tasksStringRaw, "\n")
+
+					// For each container's task...
+					for _, taskID := range taskIDs {
+						// 3. Check if the task is already bound to some NUMA node
+						statusFileName := "/proc/" + taskID + "/status"
+						statusBytesRaw, err := filesystem.Filesystem.ReadFile(statusFileName)
+						if err != nil {
+							return err
+						}
+
+						statusStringRaw := string(statusBytesRaw)
+						statusStrings := strings.Split(statusStringRaw, "\n")
+						statusString := statusStrings[4]
+
+						if !statusString.Contains("Ngid") {
+							for _, statusString = range statusStrings {
+	    					if statusString.Contains("Ngid") {
+	        				break
+	    					}
+							}
+						}
+
+						numaStatStr := statusString[ (len(statusString) - 1) :]
+						numaStat, err := strconv.Atoi(numaStatStr)
+						if err != nil {
+							numaStat = 0
+						}
+
+						// If the task is not yet bound to the NUMA node...
+						if numaStat == 0 {
+							// 4. Get ID of the CPU where the task was last executed
+							statFileName := "/proc/" + taskID + "/stat"
+							statBytesRaw, err := filesystem.Filesystem.ReadFile(statFileName)
+							if err != nil {
+								return err
+							}
+
+							statStringRaw := string(statBytesRaw)
+							statsForProc := strings.Split(statStringRaw, " ")
+							cpuIDLastExecutedOn, err := strconv.Atoi(statsForProc[38])
+							if err != nil {
+								return err
+							}
+
+							klog.V(2).Infof("[Container Manager | Augmentation II] For task %s of container %s got CPU where it last run: %d", taskID, containerID, cpuIDLastExecutedOn)
+
+							// 5. Find appropriate cpuset to run the task based on locality and (if enabled) stack placement
+							if stackBound {
+								// stub
+							}
+
+							singleCPUcpuset := cpuset.NewCPUSet(cpuIDLastExecutedOn)
+							CPUsIDs := m.topoNUMA.GetColocatedCPUs(singleCPUcpuset)
+							numaCpuset := cpuset.NewCPUSetFromSlice(CPUsIDs)
+							memIDs := m.topoNUMA.MemsForCPUs(numaCpuset)
+							memsCpuset := m.topoNUMA.NewCPUSetWithMem(memIDs)
+							numaCpuset = numaCpuset.Union(memsCpuset)
+
+							// 6. Update cpusets for burstable and best effort QoS classes
+							cpusetCPUsStr := numaCpuset.String()
+							cpusetMemsStr := numaCpuset.Memstring()
+
+							configs[v1.PodQOSBurstable].ResourceParameters.CpusetCPUs = &cpusetCPUsStr
+							configs[v1.PodQOSBestEffort].ResourceParameters.CpusetCPUs = &cpusetCPUsStr
+							configs[v1.PodQOSBurstable].ResourceParameters.CpusetMems = &cpusetMemsStr
+							configs[v1.PodQOSBestEffort].ResourceParameters.CpusetMems = &cpusetMemsStr
+						}
+					}
+				}
+			}
+
+		}
+	}
 
 	return nil
 }
