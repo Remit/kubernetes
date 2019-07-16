@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1/resource"
 	v1qos "k8s.io/kubernetes/pkg/apis/core/v1/helper/qos"
 	kubefeatures "k8s.io/kubernetes/pkg/features"
+	cmutil "k8s.io/kubernetes/pkg/kubelet/cm/util"
 )
 
 const (
@@ -57,9 +58,10 @@ type qosContainerManagerImpl struct {
 	getNodeAllocatable func() v1.ResourceList
 	cgroupRoot         CgroupName
 	qosReserved        map[v1.ResourceName]int64
+	topoNUMA					 *cmutil.NUMATopology
 }
 
-func NewQOSContainerManager(subsystems *CgroupSubsystems, cgroupRoot CgroupName, nodeConfig NodeConfig, cgroupManager CgroupManager) (QOSContainerManager, error) {
+func NewQOSContainerManager(subsystems *CgroupSubsystems, cgroupRoot CgroupName, nodeConfig NodeConfig, cgroupManager CgroupManager, topoNUMA *cmutil.NUMATopology) (QOSContainerManager, error) {
 	if !nodeConfig.CgroupsPerQOS {
 		return &qosContainerManagerNoop{
 			cgroupRoot: cgroupRoot,
@@ -71,6 +73,7 @@ func NewQOSContainerManager(subsystems *CgroupSubsystems, cgroupRoot CgroupName,
 		cgroupManager: cgroupManager,
 		cgroupRoot:    cgroupRoot,
 		qosReserved:   nodeConfig.QOSReserved,
+		topoNUMA:			 topoNUMA,
 	}, nil
 }
 
@@ -192,6 +195,15 @@ func (m *qosContainerManagerImpl) setCPUCgroupConfig(configs map[v1.PodQOSClass]
 	return nil
 }
 
+// Augmentation starts:
+func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSClass]*CgroupConfig) error {
+	// TODO: ask for mem??? like in  setMemoryReserve ?
+	pods := m.activePods()
+
+	return nil
+}
+// Augmentation ends
+
 // setMemoryReserve sums the memory limits of all pods in a QOS class,
 // calculates QOS class memory limits, and set those limits in the
 // CgroupConfig for each QOS class.
@@ -291,6 +303,13 @@ func (m *qosContainerManagerImpl) UpdateCgroups() error {
 	if err := m.setHugePagesConfig(qosConfigs); err != nil {
 		return err
 	}
+
+	// Augmentation start:
+	// update the co-location of task's memory and CPUs for NUMA architecture
+	if err := m.setCPUSetsCgroupConfig(qosConfigs); err != nil {
+		return err
+	}
+	// Augmentation ends
 
 	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.QOSReserved) {
 		for resource, percentReserve := range m.qosReserved {

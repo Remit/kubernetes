@@ -35,6 +35,15 @@ type ResourceConfig struct {
 	HugePageLimit map[int64]int64
 	// Maximum number of pids
 	PidsLimit *int64
+
+	// Augmentation starts:
+	// Set of CPUs ids on which the threads from the given group are bound to run
+	// (string format as supported by cgroups, i.e. 1-2,5-6)
+	CpusetCPUs *string
+	// Set of memory nodes ids on which the threads from the given group are bound to run
+	// (string format as supported by cgroups, i.e. 1-2,5-6)
+	CpusetMems *string
+	// Augmentation ends
 }
 
 // CgroupName is the abstract name of a cgroup prior to any driver specific conversion.
