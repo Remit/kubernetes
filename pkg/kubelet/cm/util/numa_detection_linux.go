@@ -53,7 +53,7 @@ type NUMATopology struct {
 
 // GetColocatedCPUs returns the slice of CPUs IDs
 // which are on the same NUMA node as cpus
-func (t NUMATopology) GetColocatedCPUs(cpus cpuset.CPUSet) int[] {
+func (t NUMATopology) GetColocatedCPUs(cpus cpuset.CPUSet) []int {
   cpusIDs := []int{}
   addCPUs := make([]bool, len(t.NUMADetails))
 
@@ -79,7 +79,7 @@ func (t NUMATopology) GetColocatedCPUs(cpus cpuset.CPUSet) int[] {
 // MemsForCPUs returns the slice of memory nodes IDs
 // which are on the same NUMA node as cpus
 // TODO: consider returning cpuset.CPUSet -> usage needs to be modified too
-func (t NUMATopology) MemsForCPUs(cpus cpuset.CPUSet) int[] {
+func (t NUMATopology) MemsForCPUs(cpus cpuset.CPUSet) []int {
   memnodesIDs := []int{}
   addMems := make([]bool, len(t.NUMADetails))
 
@@ -103,7 +103,7 @@ func (t NUMATopology) MemsForCPUs(cpus cpuset.CPUSet) int[] {
 }
 
 // GetNUMANodeSubnodes gets ids of resource subnodes for the given NUMA node
-func GetNUMANodeSubnodes(nodeID int, resourceName string) (int[], error) {
+func GetNUMANodeSubnodes(nodeID int, resourceName string) ([]int, error) {
   nodeDir := "/sys/devices/system/node/node" + strconv.Itoa(nodeID) + "/"
   nodeDirContents, err := filesystem.Filesystem.ReadDir(nodeDir)
 
@@ -135,7 +135,7 @@ func GetNUMANodeSubnodes(nodeID int, resourceName string) (int[], error) {
 }
 
 // GetNUMANodeCPUs gets the CPUs on the given NUMA node
-func GetNUMANodeCPUs(nodeID int) (int[], error) {
+func GetNUMANodeCPUs(nodeID int) ([]int, error) {
   nodeCPUs, err := GetNUMANodeSubnodes(nodeID, "cpu")
 
   if err != nil {
@@ -146,7 +146,7 @@ func GetNUMANodeCPUs(nodeID int) (int[], error) {
 }
 
 // GetNUMANodeMems gets Memory nodes on the given NUMA node
-func GetNUMANodeMems(nodeID int) (int[], error) {
+func GetNUMANodeMems(nodeID int) ([]int, error) {
   nodeMems, err := GetNUMANodeSubnodes(nodeID, "memory")
 
   if err != nil {
