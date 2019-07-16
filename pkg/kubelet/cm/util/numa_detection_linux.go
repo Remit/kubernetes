@@ -106,7 +106,7 @@ func (t NUMATopology) MemsForCPUs(cpus cpuset.CPUSet) []int {
 
 // GetNUMANodeSubnodes gets ids of resource subnodes for the given NUMA node
 func GetNUMANodeSubnodes(nodeID int, resourceName string) ([]int, error) {
-  var fs := utilfs.DefaultFs{}
+  fs := utilfs.DefaultFs{}
   nodeDir := "/sys/devices/system/node/node" + strconv.Itoa(nodeID) + "/"
   nodeDirContents, err := fs.ReadDir(nodeDir)
 
@@ -163,7 +163,7 @@ func GetNUMANodeMems(nodeID int) ([]int, error) {
 // GetNUMATopology gets the NUMA topology of the host
 // accessing /sys/devices/system/node/nodeX dirs
 func GetNUMATopology() (*NUMATopology, error) {
-  var fs := utilfs.DefaultFs{}
+  fs := utilfs.DefaultFs{}
   nodeStrPrefix := "node"
   dirForNodes := "/sys/devices/system/node/"
   nodeDirContents, err := fs.ReadDir(dirForNodes)
