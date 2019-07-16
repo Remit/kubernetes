@@ -333,8 +333,8 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 							cpusetCPUsStr := numaCpuset.String()
 							cpusetMemsStr := numaCpuset.Memstring()
 
-							configs[v1.PodQOSBurstable].ResourceParameters.CpusetCPUs = &cpusetCPUsStr
-							configs[v1.PodQOSBestEffort].ResourceParameters.CpusetCPUs = &cpusetCPUsStr
+							configs[v1.PodQOSBurstable].ResourceParameters.CpusetCpus = &cpusetCPUsStr
+							configs[v1.PodQOSBestEffort].ResourceParameters.CpusetCpus = &cpusetCPUsStr
 							configs[v1.PodQOSBurstable].ResourceParameters.CpusetMems = &cpusetMemsStr
 							configs[v1.PodQOSBestEffort].ResourceParameters.CpusetMems = &cpusetMemsStr
 						}
