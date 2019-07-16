@@ -94,7 +94,7 @@ func NewStaticPolicy(topology *topology.CPUTopology, numReservedCPUs int, topoNU
 	//
 	// For example: Given a system with 8 CPUs available and HT enabled,
 	// if numReservedCPUs=2, then reserved={0,4}
-	reserved, _ := takeByTopology(topology, allCPUs, numReservedCPUs, false)
+	reserved, _ := takeByTopology(topology, allCPUs, numReservedCPUs, false, false, topoNUMA)
 
 	if reserved.Size() != numReservedCPUs {
 		panic(fmt.Sprintf("[cpumanager] unable to reserve the required amount of CPUs (size of %s did not equal %d)", reserved, numReservedCPUs))

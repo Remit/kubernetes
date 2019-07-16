@@ -45,7 +45,7 @@ func newCPUAccumulator(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, 
 
 func (a *cpuAccumulator) take(cpus cpuset.CPUSet, numaAware bool, topoNUMA *cmutil.NUMATopology) {
 	// Augmentation begins:
-	cpusetCloned := cpuset.Clone()
+	cpusetCloned := cpus.Clone()
 	if numaAware {
 		// 1) find mem ids from same node
 		associatedMems := topoNUMA.MemsForCPUs(cpus)
