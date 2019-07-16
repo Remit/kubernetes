@@ -36,7 +36,7 @@ import (
 	v1qos "k8s.io/kubernetes/pkg/apis/core/v1/helper/qos"
 	kubefeatures "k8s.io/kubernetes/pkg/features"
 	cmutil "k8s.io/kubernetes/pkg/kubelet/cm/util"
-	"k8s.io/kubernetes/pkg/util/filesystem"
+	utilfs "k8s.io/kubernetes/pkg/util/filesystem"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
@@ -214,6 +214,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 	// TODO: ask for mem??? like in  setMemoryReserve ?
 	// TODO: add default case: no NUMA -> nils
 	pods := m.activePods()
+	fs := utilfs.DefaultFs{}
 
 	// For each pod...
 	for i := range pods {
@@ -246,7 +247,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 
 				// 2. Getting task IDs for the container based on container id
 				cgroupContainersDir := "/sys/fs/cgroup/cpu/docker/"
-			  cgroupContainersDirContents, err := filesystem.Filesystem.ReadDir(cgroupContainersDir)
+			  cgroupContainersDirContents, err := fs.ReadDir(cgroupContainersDir)
 
 				if err != nil {
 					return err
@@ -263,7 +264,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 					rawName := cgroupContainersSubdir.Name()
 					tasksFileName := rawName + "/tasks"
 
-					tasksBytesRaw, err := filesystem.Filesystem.ReadFile(tasksFileName)
+					tasksBytesRaw, err := fs.ReadFile(tasksFileName)
 					if err != nil {
 						return err
 					}
@@ -275,7 +276,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 					for _, taskID := range taskIDs {
 						// 3. Check if the task is already bound to some NUMA node
 						statusFileName := "/proc/" + taskID + "/status"
-						statusBytesRaw, err := filesystem.Filesystem.ReadFile(statusFileName)
+						statusBytesRaw, err := fs.ReadFile(statusFileName)
 						if err != nil {
 							return err
 						}
@@ -284,9 +285,9 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 						statusStrings := strings.Split(statusStringRaw, "\n")
 						statusString := statusStrings[4]
 
-						if !statusString.Contains("Ngid") {
+						if !strings.Contains(statusString, "Ngid") {
 							for _, statusString = range statusStrings {
-	    					if statusString.Contains("Ngid") {
+	    					if strings.Contains(statusString, "Ngid") {
 	        				break
 	    					}
 							}
@@ -302,7 +303,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 						if numaStat == 0 {
 							// 4. Get ID of the CPU where the task was last executed
 							statFileName := "/proc/" + taskID + "/stat"
-							statBytesRaw, err := filesystem.Filesystem.ReadFile(statFileName)
+							statBytesRaw, err := fs.ReadFile(statFileName)
 							if err != nil {
 								return err
 							}
@@ -325,7 +326,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 							CPUsIDs := m.topoNUMA.GetColocatedCPUs(singleCPUcpuset)
 							numaCpuset := cpuset.NewCPUSetFromSlice(CPUsIDs)
 							memIDs := m.topoNUMA.MemsForCPUs(numaCpuset)
-							memsCpuset := m.topoNUMA.NewCPUSetWithMem(memIDs)
+							memsCpuset := cpuset.NewCPUSetWithMem(memIDs)
 							numaCpuset = numaCpuset.Union(memsCpuset)
 
 							// 6. Update cpusets for burstable and best effort QoS classes
