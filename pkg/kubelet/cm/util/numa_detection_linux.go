@@ -21,6 +21,8 @@ import (
   "strings"
   "strconv"
 
+  "k8s.io/klog"
+
   "k8s.io/kubernetes/pkg/util/filesystem"
   "k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
@@ -69,7 +71,7 @@ func (t NUMATopology) GetColocatedCPUs(cpus cpuset.CPUSet) []int {
 
   for i, addCPUCheck := range addCPUs {
     if addCPUCheck {
-      cpusIDs = append(cpusIDs, t.NUMADetails[i].CPUs)
+      cpusIDs = t.NUMADetails[i].CPUs
     }
   }
 
@@ -95,7 +97,7 @@ func (t NUMATopology) MemsForCPUs(cpus cpuset.CPUSet) []int {
 
   for i, addMemCheck := range addMems {
     if addMemCheck {
-      memnodesIDs = append(memnodesIDs, t.NUMADetails[i].Mems)
+      memnodesIDs = memnodesIDs, t.NUMADetails[i].Mems
     }
   }
 
@@ -118,11 +120,12 @@ func GetNUMANodeSubnodes(nodeID int, resourceName string) ([]int, error) {
     return strings.Contains(rawName, resourceName)
   }
 
-  resNodesNames := filter(nodeDirContents, filterByName)
+  resNodesNames := filter(nodeDirContents, filterByResource)
 
   subnodesIDs := []int{}
   prefixLen := len(resourceName)
-  for _, resNodeName := range resNodesNames {
+  for _, resNodeNameFI := range resNodesNames {
+    resNodeName := resNodeNameFI.Name()
     rawID := resNodeName[prefixLen : ]
 
     // Taking into account other folders with overlapping names e.g. cpumap and cpulist
@@ -153,7 +156,7 @@ func GetNUMANodeMems(nodeID int) ([]int, error) {
     return nil, err
   }
 
-  return nodeMems
+  return nodeMems, nil
 }
 
 // GetNUMATopology gets the NUMA topology of the host
@@ -176,7 +179,8 @@ func GetNUMATopology() (*NUMATopology, error) {
 
   nodesNames := filter(nodeDirContents, filterByName)
   prefixLen := len(nodeStrPrefix)
-  for _, nodeName := range nodesNames {
+  for _, nodeNameFI := range nodesNames {
+    nodeName := nodeNameFI.Name()
     rawID := nodeName[prefixLen : ]
 
     if nodeID, err := strconv.Atoi(rawID); err == nil {
