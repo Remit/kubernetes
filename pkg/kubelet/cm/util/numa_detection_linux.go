@@ -180,7 +180,7 @@ func GetNUMATopology() (*NUMATopology, error) {
   }
 
   nodesNames := filter(nodeDirContents, filterByName)
-  numaDetailsAr := make([]NUMADetails, len(nodesNames))
+  numaDetails := make(NUMADetails)
   prefixLen := len(nodeStrPrefix)
   for _, nodeNameFI := range nodesNames {
     nodeName := nodeNameFI.Name()
@@ -200,7 +200,7 @@ func GetNUMATopology() (*NUMATopology, error) {
       		return nil, err
       	}
 
-        numaDetailsAr[nodeID] = NUMANodeInfo{
+        numaDetails[nodeID] = NUMANodeInfo{
           CPUs:   nodeCPUs,
           Mems:   nodeMems,
         }
@@ -211,6 +211,6 @@ func GetNUMATopology() (*NUMATopology, error) {
 
   return &NUMATopology{
 		NumNodes:    numNUMANodes,
-		NUMADetails: numaDetailsAr,
+		NUMADetails: numaDetails,
 	}, nil
 }
