@@ -23,7 +23,7 @@ import (
 
   "k8s.io/klog"
 
-  "k8s.io/kubernetes/pkg/util/filesystem"
+  utilfs "k8s.io/kubernetes/pkg/util/filesystem"
   "k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
@@ -106,8 +106,9 @@ func (t NUMATopology) MemsForCPUs(cpus cpuset.CPUSet) []int {
 
 // GetNUMANodeSubnodes gets ids of resource subnodes for the given NUMA node
 func GetNUMANodeSubnodes(nodeID int, resourceName string) ([]int, error) {
+  var fs := utilfs.DefaultFs{}
   nodeDir := "/sys/devices/system/node/node" + strconv.Itoa(nodeID) + "/"
-  nodeDirContents, err := filesystem.Filesystem.ReadDir(nodeDir)
+  nodeDirContents, err := fs.ReadDir(nodeDir)
 
   if err != nil {
     klog.Errorf("could not read the contents of directory %s for the resource %s",
@@ -162,9 +163,10 @@ func GetNUMANodeMems(nodeID int) ([]int, error) {
 // GetNUMATopology gets the NUMA topology of the host
 // accessing /sys/devices/system/node/nodeX dirs
 func GetNUMATopology() (*NUMATopology, error) {
+  var fs := utilfs.DefaultFs{}
   nodeStrPrefix := "node"
   dirForNodes := "/sys/devices/system/node/"
-  nodeDirContents, err := filesystem.Filesystem.ReadDir(dirForNodes)
+  nodeDirContents, err := fs.ReadDir(dirForNodes)
 
   if err != nil {
     klog.Errorf("could not read the contents of directory %s",
@@ -177,8 +179,8 @@ func GetNUMATopology() (*NUMATopology, error) {
     return strings.Contains(rawName, nodeStrPrefix)
   }
 
-  numaDetailsAr := make([]NUMADetails, len(nodesNames))
   nodesNames := filter(nodeDirContents, filterByName)
+  numaDetailsAr := make([]NUMADetails, len(nodesNames))
   prefixLen := len(nodeStrPrefix)
   for _, nodeNameFI := range nodesNames {
     nodeName := nodeNameFI.Name()
@@ -209,6 +211,6 @@ func GetNUMATopology() (*NUMATopology, error) {
 
   return &NUMATopology{
 		NumNodes:    numNUMANodes,
-		NUMADetails: NUMADetails,
+		NUMADetails: numaDetailsAr,
 	}, nil
 }
