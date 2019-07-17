@@ -315,9 +315,9 @@ func (s CPUSet) String() string {
 //
 // See: http://man7.org/linux/man-pages/man7/cpuset.7.html#FORMATS
 func (s CPUSet) Memstring() string {
-	// if s.MemIsEmpty() {
-	// 	return ""
-	// }
+	if s.MemIsEmpty() {
+		return ""
+	}
 	//
 	// elems := s.MemToSlice()
 	//
