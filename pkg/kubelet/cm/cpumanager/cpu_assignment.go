@@ -56,7 +56,7 @@ func (a *cpuAccumulator) take(cpus cpuset.CPUSet, numaAware bool) {
 	// 2) add mem ids as memelements to cpus
 	addedMemCpuset := cpuset.NewCPUSetWithMem(associatedMems)
 	cpusetCloned := cpus.Union(addedMemCpuset)
-	klog.V(4).Infof("[cpumanager | Augmentation TEST] updateContainerCPUSet: memory string is %s", cpusetCloned.Memstring())
+	//klog.V(4).Infof("[cpumanager | Augmentation TEST] updateContainerCPUSet: memory string is %s", cpusetCloned.Memstring())
 
 	a.result = a.result.Union(cpusetCloned)
 	// Augmentation ends
