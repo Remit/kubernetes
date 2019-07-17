@@ -53,9 +53,10 @@ func (a *cpuAccumulator) take(cpus cpuset.CPUSet, numaAware bool, topoNUMA *cmut
 		addedMemCpuset := cpuset.NewCPUSetWithMem(associatedMems)
 		cpusetCloned = cpusetCloned.Union(addedMemCpuset)
 	}
-	// Augmentation ends
 
-	a.result = a.result.Union(cpusetCloned)
+	//a.result = a.result.Union(cpusetCloned)
+	// Augmentation ends
+	a.result = a.result.Union(cpus)
 	a.details = a.details.KeepOnly(a.details.CPUs().Difference(a.result))
 	a.numCPUsNeeded -= cpus.Size()
 }
