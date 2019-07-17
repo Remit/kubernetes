@@ -47,7 +47,6 @@ func newCPUAccumulator(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, 
 
 func (a *cpuAccumulator) take(cpus cpuset.CPUSet, numaAware bool) {
 	// Augmentation begins:
-	cpusetCloned := cpus.Clone()
 	associatedMems := []int{0} // Default case for K8s system pods
 	if numaAware {
 		// 1) find mem ids from same node
@@ -56,8 +55,8 @@ func (a *cpuAccumulator) take(cpus cpuset.CPUSet, numaAware bool) {
 
 	// 2) add mem ids as memelements to cpus
 	addedMemCpuset := cpuset.NewCPUSetWithMem(associatedMems)
-		klog.V(4).Infof("[cpumanager | Augmentation TEST] updateContainerCPUSet: memory string is %s", addedMemCpuset.Memstring())
-	cpusetCloned = cpusetCloned.Union(addedMemCpuset)
+	cpusetCloned := cpus.Union(addedMemCpuset)
+	klog.V(4).Infof("[cpumanager | Augmentation TEST] updateContainerCPUSet: memory string is %s", cpusetCloned.Memstring())
 
 	a.result = a.result.Union(cpusetCloned)
 	// Augmentation ends
