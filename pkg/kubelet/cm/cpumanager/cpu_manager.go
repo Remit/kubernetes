@@ -108,7 +108,7 @@ func NewManager(cpuPolicyName string, reconcilePeriod time.Duration, machineInfo
 
 	case PolicyStatic:
 		// Augmentation begins
-		klog.Infof("[cpumanager] took host NUMA topology: %v", topoNUMA)
+		// klog.Infof("[cpumanager] took host NUMA topology: %v", topoNUMA)
 		// Augmentation ends
 		topo, err := topology.Discover(machineInfo)
 		if err != nil {
