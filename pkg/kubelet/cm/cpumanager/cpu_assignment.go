@@ -47,18 +47,18 @@ func newCPUAccumulator(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, 
 
 func (a *cpuAccumulator) take(cpus cpuset.CPUSet, numaAware bool) {
 	// Augmentation begins:
-	// cpusetCloned := cpus.Clone()
-	// if numaAware {
-	// 	// 1) find mem ids from same node
-	// 	associatedMems := a.topoNUMA.MemsForCPUs(cpus)
-	// 	// 2) add mem ids as memelements to cpus
-	// 	addedMemCpuset := cpuset.NewCPUSetWithMem(associatedMems)
-	// 	cpusetCloned = cpusetCloned.Union(addedMemCpuset)
-	// }
+	cpusetCloned := cpus.Clone()
+	if numaAware {
+		// 1) find mem ids from same node
+		associatedMems := a.topoNUMA.MemsForCPUs(cpus)
+		// 2) add mem ids as memelements to cpus
+		addedMemCpuset := cpuset.NewCPUSetWithMem(associatedMems)
+		cpusetCloned = cpusetCloned.Union(addedMemCpuset)
+	}
 
-	//a.result = a.result.Union(cpusetCloned)
+	a.result = a.result.Union(cpusetCloned)
 	// Augmentation ends
-	a.result = a.result.Union(cpus)
+	//a.result = a.result.Union(cpus)
 	a.details = a.details.KeepOnly(a.details.CPUs().Difference(a.result))
 	a.numCPUsNeeded -= cpus.Size()
 }
@@ -226,7 +226,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 		klog.V(4).Infof("[cpumanager-augmentation] takeByTopology: claiming whole or part of socket for pinned allocation [%d]", s)
 		// a) acquire whole socket if needed
 		if acc.needs(acc.topo.CPUsPerSocket()) {
-			acc.take(acc.details.CPUsInSocket(s), numaAware, topoNUMA)
+			acc.take(acc.details.CPUsInSocket(s), numaAware)
 			if acc.isSatisfied() {
 				return acc.result, nil
 			}
@@ -235,7 +235,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 		// b) acquire whole cores if needed
 		if acc.needs(acc.topo.CPUsPerCore()) {
 			for _, c := range acc.freeCores(s) {
-				acc.take(acc.details.CPUsInCore(c), numaAware, topoNUMA)
+				acc.take(acc.details.CPUsInCore(c), numaAware)
 				if acc.isSatisfied() {
 					return acc.result, nil
 				}
@@ -246,7 +246,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 		// TODO: acc.freeCPUs() should be augmented too to get cores only from the particular socket
 		for _, c := range acc.freeCPUs(s) {
 			if acc.needs(1) {
-				acc.take(cpuset.NewCPUSet(c), numaAware, topoNUMA)
+				acc.take(cpuset.NewCPUSet(c), numaAware)
 			}
 			if acc.isSatisfied() {
 				return acc.result, nil
@@ -259,7 +259,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 	if acc.needs(acc.topo.CPUsPerSocket()) {
 		for _, s := range acc.freeSockets() {
 			klog.V(4).Infof("[cpumanager] takeByTopology: claiming socket [%d]", s)
-			acc.take(acc.details.CPUsInSocket(s), numaAware, topoNUMA)
+			acc.take(acc.details.CPUsInSocket(s), numaAware)
 			if acc.isSatisfied() {
 				return acc.result, nil
 			}
@@ -274,7 +274,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 	if acc.needs(acc.topo.CPUsPerCore()) {
 		for _, c := range acc.freeCores(-1) {
 			klog.V(4).Infof("[cpumanager] takeByTopology: claiming core [%d]", c)
-			acc.take(acc.details.CPUsInCore(c), numaAware, topoNUMA)
+			acc.take(acc.details.CPUsInCore(c), numaAware)
 			if acc.isSatisfied() {
 				return acc.result, nil
 			}
@@ -290,7 +290,7 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 	for _, c := range acc.freeCPUs(-1) {
 		klog.V(4).Infof("[cpumanager] takeByTopology: claiming CPU [%d]", c)
 		if acc.needs(1) {
-			acc.take(cpuset.NewCPUSet(c), numaAware, topoNUMA)
+			acc.take(cpuset.NewCPUSet(c), numaAware)
 		}
 		if acc.isSatisfied() {
 			return acc.result, nil
