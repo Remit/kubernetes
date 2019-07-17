@@ -119,6 +119,16 @@ func (s CPUSet) IsEmpty() bool {
 	return s.Size() == 0
 }
 
+// Size returns the number of elements in this set.
+func (s CPUSet) MemSize() int {
+	return len(s.memelems)
+}
+
+// IsEmpty returns true if there are zero elements in this set.
+func (s CPUSet) MemIsEmpty() bool {
+	return s.MemSize() == 0
+}
+
 // Contains returns true if the supplied element is present in this set.
 func (s CPUSet) Contains(cpu int) bool {
 	_, found := s.elems[cpu]
@@ -305,18 +315,18 @@ func (s CPUSet) String() string {
 //
 // See: http://man7.org/linux/man-pages/man7/cpuset.7.html#FORMATS
 func (s CPUSet) Memstring() string {
-	if s.IsEmpty() {
-		return ""
-	}
-
-	elems := s.MemToSlice()
-
-	type rng struct {
-		start int
-		end   int
-	}
-
-	ranges := []rng{{elems[0], elems[0]}}
+	// if s.MemIsEmpty() {
+	// 	return ""
+	// }
+	//
+	// elems := s.MemToSlice()
+	//
+	// type rng struct {
+	// 	start int
+	// 	end   int
+	// }
+	//
+	// ranges := []rng{{elems[0], elems[0]}}
 
 	// for i := 1; i < len(elems); i++ {
 	// 	lastRange := &ranges[len(ranges)-1]
@@ -341,7 +351,7 @@ func (s CPUSet) Memstring() string {
 	// 	result.WriteString(",")
 	// }
 	// return strings.TrimRight(result.String(), ",")
-	return fmt.Sprintf("%d", ranges[0].start)
+	return "0"
 }
 // Augmentation ends
 
