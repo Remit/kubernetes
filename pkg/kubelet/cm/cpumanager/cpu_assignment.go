@@ -32,23 +32,25 @@ type cpuAccumulator struct {
 	details       topology.CPUDetails
 	numCPUsNeeded int
 	result        cpuset.CPUSet
+	topoNUMA			*cmutil.NUMATopology
 }
 
-func newCPUAccumulator(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, numCPUs int) *cpuAccumulator {
+func newCPUAccumulator(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, numCPUs int, topoNUMA *cmutil.NUMATopology) *cpuAccumulator {
 	return &cpuAccumulator{
 		topo:          topo,
 		details:       topo.CPUDetails.KeepOnly(availableCPUs),
 		numCPUsNeeded: numCPUs,
 		result:        cpuset.NewCPUSet(),
+		topoNUMA:			 topoNUMA,
 	}
 }
 
-func (a *cpuAccumulator) take(cpus cpuset.CPUSet, numaAware bool, topoNUMA *cmutil.NUMATopology) {
+func (a *cpuAccumulator) take(cpus cpuset.CPUSet, numaAware bool) {
 	// Augmentation begins:
 	// cpusetCloned := cpus.Clone()
 	// if numaAware {
 	// 	// 1) find mem ids from same node
-	// 	associatedMems := topoNUMA.MemsForCPUs(cpus)
+	// 	associatedMems := a.topoNUMA.MemsForCPUs(cpus)
 	// 	// 2) add mem ids as memelements to cpus
 	// 	addedMemCpuset := cpuset.NewCPUSetWithMem(associatedMems)
 	// 	cpusetCloned = cpusetCloned.Union(addedMemCpuset)
@@ -204,7 +206,7 @@ func (a *cpuAccumulator) isFailed() bool {
 
 func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, numCPUs int, separateSockets bool, numaAware bool, topoNUMA *cmutil.NUMATopology) (cpuset.CPUSet, error) {
 	// TODO: check if the new arguments can be made by default
-	acc := newCPUAccumulator(topo, availableCPUs, numCPUs)
+	acc := newCPUAccumulator(topo, availableCPUs, numCPUs, topoNUMA)
 	if acc.isSatisfied() {
 		return acc.result, nil
 	}
