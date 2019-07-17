@@ -341,7 +341,7 @@ func (s CPUSet) Memstring() string {
 	// 	result.WriteString(",")
 	// }
 	// return strings.TrimRight(result.String(), ",")
-	return "0"
+	return fmt.Sprintf("%d", ranges[0].start)
 }
 // Augmentation ends
 
