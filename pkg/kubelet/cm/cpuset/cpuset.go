@@ -318,40 +318,39 @@ func (s CPUSet) Memstring() string {
 	if s.MemIsEmpty() {
 		return ""
 	}
-	//
-	// elems := s.MemToSlice()
-	//
-	// type rng struct {
-	// 	start int
-	// 	end   int
-	// }
-	//
-	// ranges := []rng{{elems[0], elems[0]}}
 
-	// for i := 1; i < len(elems); i++ {
-	// 	lastRange := &ranges[len(ranges)-1]
-	// 	// if this element is adjacent to the high end of the last range
-	// 	if elems[i] == lastRange.end+1 {
-	// 		// then extend the last range to include this element
-	// 		lastRange.end = elems[i]
-	// 		continue
-	// 	}
-	// 	// otherwise, start a new range beginning with this element
-	// 	ranges = append(ranges, rng{elems[i], elems[i]})
-	// }
-	//
-	// // construct string from ranges
-	// var result bytes.Buffer
-	// for _, r := range ranges {
-	// 	if r.start == r.end {
-	// 		result.WriteString(strconv.Itoa(r.start))
-	// 	} else {
-	// 		result.WriteString(fmt.Sprintf("%d-%d", r.start, r.end))
-	// 	}
-	// 	result.WriteString(",")
-	// }
-	// return strings.TrimRight(result.String(), ",")
-	return "0"
+	elems := s.MemToSlice()
+
+	type rng struct {
+		start int
+		end   int
+	}
+
+	ranges := []rng{{elems[0], elems[0]}}
+
+	for i := 1; i < len(elems); i++ {
+		lastRange := &ranges[len(ranges)-1]
+		// if this element is adjacent to the high end of the last range
+		if elems[i] == lastRange.end+1 {
+			// then extend the last range to include this element
+			lastRange.end = elems[i]
+			continue
+		}
+		// otherwise, start a new range beginning with this element
+		ranges = append(ranges, rng{elems[i], elems[i]})
+	}
+
+	// construct string from ranges
+	var result bytes.Buffer
+	for _, r := range ranges {
+		if r.start == r.end {
+			result.WriteString(strconv.Itoa(r.start))
+		} else {
+			result.WriteString(fmt.Sprintf("%d-%d", r.start, r.end))
+		}
+		result.WriteString(",")
+	}
+	return strings.TrimRight(result.String(), ",")
 }
 // Augmentation ends
 
