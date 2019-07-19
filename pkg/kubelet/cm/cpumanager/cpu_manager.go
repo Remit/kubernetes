@@ -322,6 +322,6 @@ func (m *manager) updateContainerCPUSet(containerID string, cpus cpuset.CPUSet) 
 		containerID,
 		&runtimeapi.LinuxContainerResources{
 			CpusetCpus: cpus.String(),
-			CpusetMems: cpus.Memstring(),
+			//CpusetMems: cpus.Memstring(),
 		})
 }
