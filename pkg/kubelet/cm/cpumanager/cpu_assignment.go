@@ -51,16 +51,21 @@ func (a *cpuAccumulator) take(cpus cpuset.CPUSet, numaAware bool) {
 	if numaAware {
 		// 1) find mem ids from same node
 		associatedMems = a.topoNUMA.MemsForCPUs(cpus)
+		klog.V(4).Infof("[cpu_assignment | Augmentation] take: NUMA-aware placement invoked with NUMA topology %v", a.topoNUMA)
 	}
 
 	// 2) add mem ids as memelements to cpus
 	addedMemCpuset := cpuset.NewCPUSetWithMem(associatedMems)
 	cpusetCloned := cpus.Union(addedMemCpuset)
-	//klog.V(4).Infof("[cpumanager | Augmentation TEST] updateContainerCPUSet: memory string is %s", cpusetCloned.Memstring())
+	klog.V(4).Infof("[cpu_assignment | Augmentation] take: cpuset to assign is %v", cpusetCloned)
 
 	a.result = a.result.Union(cpusetCloned)
 	// Augmentation ends
-	//a.result = a.result.Union(cpus)
+
+	// OLD begins:
+	// a.result = a.result.Union(cpus)
+	// OLD ends
+
 	a.details = a.details.KeepOnly(a.details.CPUs().Difference(a.result))
 	a.numCPUsNeeded -= cpus.Size()
 }
