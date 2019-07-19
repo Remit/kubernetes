@@ -253,16 +253,15 @@ func (p *staticPolicy) allocateCPUs(s state.State, numCPUs int, separateSockets 
 
 func guaranteedCPUs(pod *v1.Pod, container *v1.Container) int {
 	if v1qos.GetPodQOS(pod) != v1.PodQOSGuaranteed {
-		klog.V(4).Infof("[policy_static | Augmentation] guaranteedCPUs: v1qos.GetPodQOS(pod) != v1.PodQOSGuaranteed")
 		return 0
 	}
 	cpuQuantity := container.Resources.Requests[v1.ResourceCPU]
 	if cpuQuantity.Value()*1000 != cpuQuantity.MilliValue() {
-		klog.V(4).Infof("[policy_static | Augmentation] cpuQuantity.Value()*1000 != cpuQuantity.MilliValue()")
 		return 0
 	}
 	// Safe downcast to do for all systems with < 2.1 billion CPUs.
 	// Per the language spec, `int` is guaranteed to be at least 32 bits wide.
 	// https://golang.org/ref/spec#Numeric_types
+	klog.V(4).Infof("[policy_static | Augmentation] guaranteedCPUs are being returned.")
 	return int(cpuQuantity.Value())
 }
