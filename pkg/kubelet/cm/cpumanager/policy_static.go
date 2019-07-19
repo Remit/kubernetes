@@ -137,7 +137,7 @@ func (p *staticPolicy) validateState(s state.State) error {
 		addedMemCpuset := cpuset.NewCPUSetWithMem(associatedMems)
 		allCPUsMemAdjusted := allCPUs.Union(addedMemCpuset)
 		// Augmentation ends
-		
+
 		s.SetDefaultCPUSet(allCPUsMemAdjusted)
 		return nil
 	}
@@ -232,6 +232,7 @@ func (p *staticPolicy) RemoveContainer(s state.State, containerID string) error 
 	if toRelease, ok := s.GetCPUSet(containerID); ok {
 		s.Delete(containerID)
 		// Mutate the shared pool, adding released cpus.
+
 		s.SetDefaultCPUSet(s.GetDefaultCPUSet().Union(toRelease))
 	}
 	return nil
@@ -252,10 +253,12 @@ func (p *staticPolicy) allocateCPUs(s state.State, numCPUs int, separateSockets 
 
 func guaranteedCPUs(pod *v1.Pod, container *v1.Container) int {
 	if v1qos.GetPodQOS(pod) != v1.PodQOSGuaranteed {
+		klog.V(4).Infof("[policy_static | Augmentation] guaranteedCPUs: v1qos.GetPodQOS(pod) != v1.PodQOSGuaranteed")
 		return 0
 	}
 	cpuQuantity := container.Resources.Requests[v1.ResourceCPU]
 	if cpuQuantity.Value()*1000 != cpuQuantity.MilliValue() {
+		klog.V(4).Infof("[policy_static | Augmentation] cpuQuantity.Value()*1000 != cpuQuantity.MilliValue()")
 		return 0
 	}
 	// Safe downcast to do for all systems with < 2.1 billion CPUs.

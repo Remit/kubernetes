@@ -174,7 +174,7 @@ func (m *manager) AddContainer(p *v1.Pod, c *v1.Container, containerID string) e
 	m.Lock()
 	err := m.policy.AddContainer(m.state, p, c, containerID)
 	if err != nil {
-		klog.Errorf("[cpumanager] AddContainer error I: %v", err)
+		klog.Errorf("[cpumanager] AddContainer error: %v", err)
 		m.Unlock()
 		return err
 	}
@@ -184,7 +184,7 @@ func (m *manager) AddContainer(p *v1.Pod, c *v1.Container, containerID string) e
 	if !cpus.IsEmpty() {
 		err = m.updateContainerCPUSet(containerID, cpus)
 		if err != nil {
-			klog.Errorf("[cpumanager] AddContainer error II: %v", err)
+			klog.Errorf("[cpumanager] AddContainer error: %v", err)
 			m.Lock()
 			err := m.policy.RemoveContainer(m.state, containerID)
 			if err != nil {
