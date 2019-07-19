@@ -205,6 +205,8 @@ func (p *staticPolicy) AddContainer(s state.State, pod *v1.Pod, container *v1.Co
 				numaAware = true
 			}
 		}
+
+		klog.V(4).Infof("[policy_static | Augmentation] AddContainer: allocating CPUs with socketpolicy set to %t and numapolicy set to %t for pod %s", separateSockets, numaAware, pod.Name)
 		// Augmentation ends
 
 		cpuset, err := p.allocateCPUs(s, numCPUs, separateSockets, numaAware)

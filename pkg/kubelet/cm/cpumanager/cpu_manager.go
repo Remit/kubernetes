@@ -318,7 +318,7 @@ func (m *manager) updateContainerCPUSet(containerID string, cpus cpuset.CPUSet) 
 	// helpers_linux.go similar to what exists for pods.
 	// It would be better to pass the full container resources here instead of
 	// this patch-like partial resources.
-	klog.V(4).Infof("[cpumanager | Augmentation] updateContainerCPUSet: updating container (container id: %s, cpuset: \"%v\")", containerID, cpus)
+	klog.V(4).Infof("[cpumanager | Augmentation] updateContainerCPUSet: updating container (container id: %s, cpuset.cpus: %s, cpuset.mems: %s)", containerID, cpus.String(), cpus.Memstring())
 
 	return m.containerRuntime.UpdateContainerResources(
 		containerID,
