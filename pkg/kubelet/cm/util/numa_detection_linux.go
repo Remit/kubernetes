@@ -149,17 +149,6 @@ func GetNUMANodeCPUs(nodeID int) ([]int, error) {
   return nodeCPUs, nil
 }
 
-// GetNUMANodeMems gets Memory nodes on the given NUMA node
-func GetNUMANodeMems(nodeID int) ([]int, error) {
-  nodeMems, err := GetNUMANodeSubnodes(nodeID, "memory")
-
-  if err != nil {
-    return nil, err
-  }
-
-  return nodeMems, nil
-}
-
 // GetNUMATopology gets the NUMA topology of the host
 // accessing /sys/devices/system/node/nodeX dirs
 func GetNUMATopology() (*NUMATopology, error) {
@@ -194,11 +183,8 @@ func GetNUMATopology() (*NUMATopology, error) {
           return nil, err
         }
 
-        nodeMems, err := GetNUMANodeMems(nodeID)
-
-        if err != nil {
-      		return nil, err
-      	}
+        // cpuset.mems has the granularity of NUMA nodes and not memory blocks
+        nodeMems := []int{nodeID}
 
         numaDetails[nodeID] = NUMANodeInfo{
           CPUs:   nodeCPUs,
