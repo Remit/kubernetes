@@ -419,8 +419,8 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 				configs[containerID] = CgroupConfig{
 						Name:               cgroupNameForContainer,
 						ResourceParameters: &ResourceConfig{
-							CpusetCpus = &cpusetCPUsStr,
-							CpusetMems = &cpusetMemsStr,
+							CpusetCpus: &cpusetCPUsStr,
+							CpusetMems: &cpusetMemsStr,
 						},
 				}
 			}
