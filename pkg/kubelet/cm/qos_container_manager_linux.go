@@ -281,6 +281,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 			// For each pod's container...
 			for _, containerStatus := range pod.Status.ContainerStatuses {
 				// 1. Extract IDs of containers of each pod
+				preferredNUMAnodesByContainer := []int{}
 				containerIDRaw := containerStatus.ContainerID
 				prefixLen := len("docker://")
 				containerID := containerIDRaw[ prefixLen : ]
@@ -311,7 +312,6 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 					tasksStringRaw := string(tasksBytesRaw)
 					taskIDs := strings.Split(tasksStringRaw, "\n")
 
-					preferredNUMAnodesByContainer := []int{}
 					// For each container's task...
 					for _, taskID := range taskIDs {
 						// 3. Check if the task is already bound to some NUMA node
@@ -394,7 +394,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
     			occs = append(occs, val)
 				}
 
-				sort.Ints(sort.Reverse(sort.IntSlice(occs)))
+				sort.Sort(sort.Reverse(sort.IntSlice(occs)))
 				occsMax := occs[0]
 				preferredNUMAnode := 0
 				for key, val := range occurencies {
@@ -410,19 +410,20 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 				cpusetCPUsStr := preferredCpuset.String()
 				cpusetMemsStr := preferredCpuset.Memstring()
 
-				klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: updating configs for cpusets for container %s of pod %s", taskID, containerID, podUID)
+				klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: updating configs for cpusets for container %s of pod %s", containerID, podUID)
 
 				// Note that the root cgroup is 'kubepods', hence all the modifications have to come after it ->
 				// libcontainer deals with cgroup subsystems through resources, so we don't have to mention them
 				// in the name of the cgroup.
 				cgroupNameForContainer := NewCgroupName(rootContainer, strings.ToLower(string(qosClass)), podUID, containerID)
-				configs[containerID] = CgroupConfig{
+				curContainerConfig := CgroupConfig{
 						Name:               cgroupNameForContainer,
 						ResourceParameters: &ResourceConfig{
 							CpusetCpus: &cpusetCPUsStr,
 							CpusetMems: &cpusetMemsStr,
 						},
 				}
+				configs[containerID] = &curContainerConfig
 			}
 
 		}
