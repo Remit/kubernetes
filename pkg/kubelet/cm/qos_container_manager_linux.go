@@ -220,6 +220,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 	for i := range pods {
 		// Getting the settings for the given pod...
 		pod := pods[i]
+		podNamespace := pod.Namespace
 
 		// Checking if we can apply the algorithm to the current pod
 		numaAware := false
@@ -229,7 +230,9 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 			}
 		}
 
-		if numaAware {
+		// Following, we exclude service pods of Kubernetes from our adjustments
+		// by considering the namespace
+		if numaAware  && (podNamespace != "kube-system") {
 			// Checking if we need to prioritize placing of threads on NUMA nodes where their stack is
 			stackBound := false
 			if val, ok := pod.Labels["stackbound"]; ok {
@@ -237,6 +240,40 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 					stackBound = true
 				}
 			}
+
+			// Preparations depending on QoS class
+			cgroupKubepodsDir := "/sys/fs/cgroup/cpu/kubepods/"
+			podUID := pod.UID
+			qosClass := v1qos.GetPodQOS(pod)
+			if qosClass == v1.PodQOSBurstable {
+				cgroupKubepodsDir = cgroupKubepodsDir + "burstable/"
+				klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: pod %s is in class v1.PodQOSBurstable, continuing to work in %s", podUID, cgroupContainersDir)
+			} else if qosClass == v1.PodQOSBestEffort {
+				cgroupKubepodsDir = cgroupKubepodsDir + "besteffort/"
+				klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: pod %s is in class v1.PodQOSBestEffort, continuing to work in %s", podUID, cgroupContainersDir)
+			} else {
+				klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: pod %s in some other QoS class, returning...", podUID)
+				return nil
+			}
+
+			// Getting pod folder of format kubepods/[burstable|besteffort]/pod*
+			cgroupPodDirContents, err := fs.ReadDir(cgroupKubepodsDir)
+
+			if err != nil {
+				return err
+			}
+
+			filterByPodUID := func(fileInfoEntry os.FileInfo) bool {
+				rawName := fileInfoEntry.Name()
+				return strings.Contains(rawName, podUID)
+			}
+
+			cgroupPodSubdirs := filter(cgroupPodDirContents, filterByPodUID)
+			// pods are unique...
+			podFSName := cgroupPodSubdirs[0].Name()
+			cgroupContainersDir := cgroupKubepodsDir + podFSName + "/"
+
+			klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: pod %s has its settings in %s folder of Cgroups", podUID, cgroupContainersDir)
 
 			// For each pod's container...
 			for _, containerStatus := range pod.Status.ContainerStatuses {
@@ -246,7 +283,6 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 				containerID := containerIDRaw[ prefixLen : ]
 
 				// 2. Getting task IDs for the container based on container id
-				cgroupContainersDir := "/sys/fs/cgroup/cpu/docker/"
 			  cgroupContainersDirContents, err := fs.ReadDir(cgroupContainersDir)
 
 				if err != nil {
@@ -301,6 +337,8 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 
 						// If the task is not yet bound to the NUMA node...
 						if numaStat == 0 {
+							klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: task %s of container %s of pod %s is not yet bound to any NUMA node. Binding...", taskID, containerID, podUID)
+
 							// 4. Get ID of the CPU where the task was last executed
 							statFileName := "/proc/" + taskID + "/stat"
 							statBytesRaw, err := fs.ReadFile(statFileName)
@@ -315,7 +353,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 								return err
 							}
 
-							klog.V(2).Infof("[Container Manager | Augmentation II] For task %s of container %s got CPU where it last run: %d", taskID, containerID, cpuIDLastExecutedOn)
+							klog.V(2).Infof("[Container Manager | Augmentation II] For task %s of container %s of pod %s got CPU where it last run: %d", taskID, containerID, podUID, cpuIDLastExecutedOn)
 
 							// 5. Find appropriate cpuset to run the task based on locality and (if enabled) stack placement
 							if stackBound {
@@ -327,16 +365,14 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 							numaCpuset := cpuset.NewCPUSetFromSlice(CPUsIDs)
 							memIDs := m.topoNUMA.MemsForCPUs(numaCpuset)
 							memsCpuset := cpuset.NewCPUSetWithMem(memIDs)
-							numaCpuset = numaCpuset.Union(memsCpuset)
+							numaCpusetWithMem := numaCpuset.Union(memsCpuset)
 
 							// 6. Update cpusets for burstable and best effort QoS classes
-							cpusetCPUsStr := numaCpuset.String()
-							cpusetMemsStr := numaCpuset.Memstring()
+							cpusetCPUsStr := numaCpusetWithMem.String()
+							cpusetMemsStr := numaCpusetWithMem.Memstring()
 
-							configs[v1.PodQOSBurstable].ResourceParameters.CpusetCpus = &cpusetCPUsStr
-							configs[v1.PodQOSBestEffort].ResourceParameters.CpusetCpus = &cpusetCPUsStr
-							configs[v1.PodQOSBurstable].ResourceParameters.CpusetMems = &cpusetMemsStr
-							configs[v1.PodQOSBestEffort].ResourceParameters.CpusetMems = &cpusetMemsStr
+							configs[qosClass].ResourceParameters.CpusetCpus = &cpusetCPUsStr
+							configs[qosClass].ResourceParameters.CpusetCpus = &cpusetCPUsStr
 						}
 					}
 				}
