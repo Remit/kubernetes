@@ -394,7 +394,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
     			occs = append(occs, val)
 				}
 
-				sort.Ints(sort.Reverse(sort.IntSlice(occs))
+				sort.Ints(sort.Reverse(sort.IntSlice(occs)))
 				occsMax := occs[0]
 				preferredNUMAnode := 0
 				for key, val := range occurencies {
