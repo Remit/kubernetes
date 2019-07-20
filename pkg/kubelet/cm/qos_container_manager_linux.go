@@ -247,10 +247,10 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 			qosClass := v1qos.GetPodQOS(pod)
 			if qosClass == v1.PodQOSBurstable {
 				cgroupKubepodsDir = cgroupKubepodsDir + "burstable/"
-				klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: pod %s is in class v1.PodQOSBurstable, continuing to work in %s", podUID, cgroupContainersDir)
+				klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: pod %s is in class v1.PodQOSBurstable, continuing to work in %s", podUID, cgroupKubepodsDir)
 			} else if qosClass == v1.PodQOSBestEffort {
 				cgroupKubepodsDir = cgroupKubepodsDir + "besteffort/"
-				klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: pod %s is in class v1.PodQOSBestEffort, continuing to work in %s", podUID, cgroupContainersDir)
+				klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: pod %s is in class v1.PodQOSBestEffort, continuing to work in %s", podUID, cgroupKubepodsDir)
 			} else {
 				klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: pod %s in some other QoS class, returning...", podUID)
 				return nil
