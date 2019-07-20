@@ -59,7 +59,7 @@ func (t NUMATopology) GetNUMANodeIDbyCPU(cpus cpuset.CPUSet) int {
     nodeCPUs := nodeInfo.CPUs
     for _, nodeCPUID := range nodeCPUs {
       if cpus.Contains(nodeCPUID) {
-        return i, nil
+        return i
       }
     }
   }
