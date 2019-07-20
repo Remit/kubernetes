@@ -70,10 +70,10 @@ func (t NUMATopology) GetNUMANodeIDbyCPU(cpus cpuset.CPUSet) int {
 
 // GetCPUSetByNodeID returns the cpuset with CPU ids and mem nodes ids for the given NUMA node
 func (t NUMATopology) GetCPUSetByNodeID(nodeID int) cpuset.CPUSet {
-  if nodeID < NumNodes && nodeID >= 0 {
+  if nodeID < t.NumNodes && nodeID >= 0 {
     CPUsIDs := NUMADetails[nodeID].CPUs
     numaCpuset := cpuset.NewCPUSetFromSlice(CPUsIDs)
-    memIDs = []int{nodeID}
+    memIDs := []int{nodeID}
     memsCpuset := cpuset.NewCPUSetWithMem(memIDs)
     numaCpusetWithMem := numaCpuset.Union(memsCpuset)
 
