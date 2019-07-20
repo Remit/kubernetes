@@ -372,7 +372,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 							cpusetMemsStr := numaCpusetWithMem.Memstring()
 
 							configs[qosClass].ResourceParameters.CpusetCpus = &cpusetCPUsStr
-							configs[qosClass].ResourceParameters.CpusetCpus = &cpusetCPUsStr
+							configs[qosClass].ResourceParameters.CpusetMems = &cpusetMemsStr
 						}
 					}
 				}
