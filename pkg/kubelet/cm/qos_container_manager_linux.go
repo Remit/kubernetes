@@ -210,7 +210,7 @@ func filter(aa []os.FileInfo, test func(os.FileInfo) bool) (ret []os.FileInfo) {
   return
 }
 
-func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSClass]*CgroupConfig) error {
+func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*CgroupConfig) error {
 	// TODO: ask for mem??? like in  setMemoryReserve ?
 	// TODO: add default case: no NUMA -> nils
 	pods := m.activePods()
@@ -298,7 +298,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 
 				for _, cgroupContainersSubdir := range cgroupContainersSubdirs {
 					rawName := cgroupContainersSubdir.Name()
-					tasksFileName := rawName + "/tasks"
+					tasksFileName := cgroupContainersDir + rawName + "/tasks"
 
 					tasksBytesRaw, err := fs.ReadFile(tasksFileName)
 					if err != nil {
@@ -307,6 +307,9 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 
 					tasksStringRaw := string(tasksBytesRaw)
 					taskIDs := strings.Split(tasksStringRaw, "\n")
+
+					// TODO: CgroupName should be constructed for pod/container/etc.
+					// TODO: make different structure of configs, not bound to QoS class in particular
 
 					// For each container's task...
 					for _, taskID := range taskIDs {
@@ -339,42 +342,61 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 						if numaStat == 0 {
 							klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: task %s of container %s of pod %s is not yet bound to any NUMA node. Binding...", taskID, containerID, podUID)
 
-							// 4. Get ID of the CPU where the task was last executed
-							statFileName := "/proc/" + taskID + "/stat"
-							statBytesRaw, err := fs.ReadFile(statFileName)
-							if err != nil {
-								return err
-							}
-
-							statStringRaw := string(statBytesRaw)
-							statsForProc := strings.Split(statStringRaw, " ")
-							cpuIDLastExecutedOn, err := strconv.Atoi(statsForProc[38])
-							if err != nil {
-								return err
-							}
-
-							klog.V(2).Infof("[Container Manager | Augmentation II] For task %s of container %s of pod %s got CPU where it last run: %d", taskID, containerID, podUID, cpuIDLastExecutedOn)
-
-							// 5. Find appropriate cpuset to run the task based on locality and (if enabled) stack placement
+							preferredNUMAnode := -1
+							// 4. Find appropriate cpuset to run the task based on locality and (if enabled) stack placement
+							// TODO: accumulate current runtime info - CPUs on which processes run and stack location on NUMA nodes
+							// the cpusets allocation has to be done on the level of containers/pods
 							if stackBound {
-								// stub
+								// 5.a.
+								// https://linux.die.net/man/5/numa_maps
+								// Check possibility of migration in cpuset???
+								// 1. cat /proc/29190/numa_maps | grep stack
+								// 2. see N0, N1, etc. -> compute where the most pages are and assign preferredNUMAnode accordingly
+
+							} else {
+								// 5.b. Get ID of the CPU where the task was last executed
+								statFileName := "/proc/" + taskID + "/stat"
+								statBytesRaw, err := fs.ReadFile(statFileName)
+								if err != nil {
+									return err
+								}
+
+								statStringRaw := string(statBytesRaw)
+								statsForProc := strings.Split(statStringRaw, " ")
+								cpuIDLastExecutedOn, err := strconv.Atoi(statsForProc[38])
+								if err != nil {
+									return err
+								}
+
+								klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: for task %s of container %s of pod %s got CPU where it last run: %d", taskID, containerID, podUID, cpuIDLastExecutedOn)
+
+								singleCPUcpuset := cpuset.NewCPUSet(cpuIDLastExecutedOn)
+								CPUsIDs := m.topoNUMA.GetColocatedCPUs(singleCPUcpuset)
+								numaCpuset := cpuset.NewCPUSetFromSlice(CPUsIDs)
+								memIDs := m.topoNUMA.MemsForCPUs(numaCpuset)
+								memsCpuset := cpuset.NewCPUSetWithMem(memIDs)
+								numaCpusetWithMem := numaCpuset.Union(memsCpuset)
 							}
 
-							singleCPUcpuset := cpuset.NewCPUSet(cpuIDLastExecutedOn)
-							CPUsIDs := m.topoNUMA.GetColocatedCPUs(singleCPUcpuset)
-							numaCpuset := cpuset.NewCPUSetFromSlice(CPUsIDs)
-							memIDs := m.topoNUMA.MemsForCPUs(numaCpuset)
-							memsCpuset := cpuset.NewCPUSetWithMem(memIDs)
-							numaCpusetWithMem := numaCpuset.Union(memsCpuset)
 
-							// 6. Update cpusets for burstable and best effort QoS classes
+
+							// 6. Update cpusets for the QoS class of the pod
 							cpusetCPUsStr := numaCpusetWithMem.String()
 							cpusetMemsStr := numaCpusetWithMem.Memstring()
 
-							configs[qosClass].ResourceParameters.CpusetCpus = &cpusetCPUsStr
-							configs[qosClass].ResourceParameters.CpusetMems = &cpusetMemsStr
+							klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: updating configs for cpusets for task %s of container %s of pod %s", taskID, containerID, podUID)
+							//configs[qosClass].ResourceParameters.CpusetCpus = &cpusetCPUsStr
+							//configs[qosClass].ResourceParameters.CpusetMems = &cpusetMemsStr
 						}
 					}
+				}
+
+				configs[containerID] = CgroupConfig{
+						Name:               m.qosContainersInfo.Burstable,
+						ResourceParameters: &ResourceConfig{
+							CpusetCpus = &cpusetCPUsStr,
+							CpusetMems = &cpusetMemsStr,
+						},
 				}
 			}
 
@@ -475,6 +497,11 @@ func (m *qosContainerManagerImpl) UpdateCgroups() error {
 		},
 	}
 
+	// Augmentation begins:
+	// Special structure for per container configuration
+	containerQoSConfigs := map[string]*CgroupConfig{}
+	// Augmentation ends
+
 	// update the qos level cgroup settings for cpu shares
 	if err := m.setCPUCgroupConfig(qosConfigs); err != nil {
 		return err
@@ -487,7 +514,7 @@ func (m *qosContainerManagerImpl) UpdateCgroups() error {
 
 	// Augmentation start:
 	// update the co-location of task's memory and CPUs for NUMA architecture
-	if err := m.setCPUSetsCgroupConfig(qosConfigs); err != nil {
+	if err := m.setCPUSetsCgroupConfig(containerQoSConfigs); err != nil {
 		return err
 	}
 	// Augmentation ends
@@ -532,6 +559,19 @@ func (m *qosContainerManagerImpl) UpdateCgroups() error {
 	}
 
 	klog.V(4).Infof("[ContainerManager]: Updated QoS cgroup configuration")
+
+	// Augmentation starts:
+	for _, config := range containerQoSConfigs {
+		err := m.cgroupManager.Update(config)
+		if err != nil {
+			klog.Errorf("[ContainerManager]: Failed to update container Burtstable/BestEffort cgroup configuration")
+			return err
+		}
+	}
+
+	klog.V(4).Infof("[ContainerManager]: Updated containers Burtstable/BestEffort cgroup configuration")
+	// Augmentation ends
+
 	return nil
 }
 
