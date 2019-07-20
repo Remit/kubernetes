@@ -53,30 +53,61 @@ type NUMATopology struct {
 	NUMADetails	NUMADetails
 }
 
-// GetColocatedCPUs returns the slice of CPUs IDs
-// which are on the same NUMA node as cpus
-func (t NUMATopology) GetColocatedCPUs(cpus cpuset.CPUSet) []int {
-  cpusIDs := []int{}
-  addCPUs := make([]bool, len(t.NUMADetails))
-
+// GetNUMANodeIDbyCPU returns the ID of the NUMA node for the given cpuset with CPUs
+func (t NUMATopology) GetNUMANodeIDbyCPU(cpus cpuset.CPUSet) int {
   for i, nodeInfo := range t.NUMADetails {
     nodeCPUs := nodeInfo.CPUs
     for _, nodeCPUID := range nodeCPUs {
       if cpus.Contains(nodeCPUID) {
-        addCPUs[i] = true
-        break
+        return i, nil
       }
     }
   }
 
-  for i, addCPUCheck := range addCPUs {
-    if addCPUCheck {
-      cpusIDs = t.NUMADetails[i].CPUs
-    }
-  }
-
-  return cpusIDs
+  klog.Errorf("Given cpuset %v is not present in the NUMA topology", cpus)
+  return -1
 }
+
+// GetCPUSetByNodeID returns the cpuset with CPU ids and mem nodes ids for the given NUMA node
+func (t NUMATopology) GetCPUSetByNodeID(nodeID int) cpuset.CPUSet {
+  if nodeID < NumNodes && nodeID >= 0 {
+    CPUsIDs := NUMADetails[nodeID].CPUs
+    numaCpuset := cpuset.NewCPUSetFromSlice(CPUsIDs)
+    memIDs = []int{nodeID}
+    memsCpuset := cpuset.NewCPUSetWithMem(memIDs)
+    numaCpusetWithMem := numaCpuset.Union(memsCpuset)
+
+    return numaCpusetWithMem
+  } else {
+    klog.Errorf("The given NUMA node ID %d is out of bounds", nodeID)
+    return cpuset.NewCPUSet()
+  }
+}
+
+// GetColocatedCPUs returns the slice of CPUs IDs
+// which are on the same NUMA node as cpus
+// func (t NUMATopology) GetColocatedCPUs(cpus cpuset.CPUSet) []int {
+//   cpusIDs := []int{}
+//   addCPUs := make([]bool, len(t.NUMADetails))
+//
+//   for i, nodeInfo := range t.NUMADetails {
+//     nodeCPUs := nodeInfo.CPUs
+//     for _, nodeCPUID := range nodeCPUs {
+//       if cpus.Contains(nodeCPUID) {
+//         addCPUs[i] = true
+//         break
+//       }
+//     }
+//   }
+//
+//   for i, addCPUCheck := range addCPUs {
+//     if addCPUCheck {
+//       cpusIDs = t.NUMADetails[i].CPUs
+//     }
+//   }
+//
+//   return cpusIDs
+// }
 
 // MemsForCPUs returns the slice of memory nodes IDs
 // which are on the same NUMA node as cpus

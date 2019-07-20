@@ -233,6 +233,8 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 		// Following, we exclude service pods of Kubernetes from our adjustments
 		// by considering the namespace
 		if numaAware  && (podNamespace != "kube-system") {
+			rootContainer := m.cgroupRoot
+
 			// Checking if we need to prioritize placing of threads on NUMA nodes where their stack is
 			stackBound := false
 			if val, ok := pod.Labels["stackbound"]; ok {
@@ -308,9 +310,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 					tasksStringRaw := string(tasksBytesRaw)
 					taskIDs := strings.Split(tasksStringRaw, "\n")
 
-					// TODO: CgroupName should be constructed for pod/container/etc.
-					// TODO: make different structure of configs, not bound to QoS class in particular
-
+					preferredNUMAnodesByContainer := []int{}
 					// For each container's task...
 					for _, taskID := range taskIDs {
 						// 3. Check if the task is already bound to some NUMA node
@@ -342,19 +342,22 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 						if numaStat == 0 {
 							klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: task %s of container %s of pod %s is not yet bound to any NUMA node. Binding...", taskID, containerID, podUID)
 
-							preferredNUMAnode := -1
 							// 4. Find appropriate cpuset to run the task based on locality and (if enabled) stack placement
 							// TODO: accumulate current runtime info - CPUs on which processes run and stack location on NUMA nodes
 							// the cpusets allocation has to be done on the level of containers/pods
 							if stackBound {
-								// 5.a.
+								// 5.a. Look up NUMA memory node where the process cache is, and push process to run closer to its cache
+								// -> cache/memory locality [has to be set explicitly through pod label]
 								// https://linux.die.net/man/5/numa_maps
 								// Check possibility of migration in cpuset???
 								// 1. cat /proc/29190/numa_maps | grep stack
 								// 2. see N0, N1, etc. -> compute where the most pages are and assign preferredNUMAnode accordingly
+								klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: stub")
 
 							} else {
-								// 5.b. Get ID of the CPU where the task was last executed
+								// 5.b. Get ID of the CPU where the task was last executed and fix memory to be in the same NUMA node
+								// (in case of tasks scattered across NUMA nodes we determine the NUMA node where most tasks are running)
+								// -> process locality [default]
 								statFileName := "/proc/" + taskID + "/stat"
 								statBytesRaw, err := fs.ReadFile(statFileName)
 								if err != nil {
@@ -371,28 +374,49 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 								klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: for task %s of container %s of pod %s got CPU where it last run: %d", taskID, containerID, podUID, cpuIDLastExecutedOn)
 
 								singleCPUcpuset := cpuset.NewCPUSet(cpuIDLastExecutedOn)
-								CPUsIDs := m.topoNUMA.GetColocatedCPUs(singleCPUcpuset)
-								numaCpuset := cpuset.NewCPUSetFromSlice(CPUsIDs)
-								memIDs := m.topoNUMA.MemsForCPUs(numaCpuset)
-								memsCpuset := cpuset.NewCPUSetWithMem(memIDs)
-								numaCpusetWithMem := numaCpuset.Union(memsCpuset)
+								preferredNUMAnodesByContainer = append(preferredNUMAnodesByContainer, m.topoNUMA.GetNUMANodeIDbyCPU(singleCPUcpuset))
 							}
-
-
-
-							// 6. Update cpusets for the QoS class of the pod
-							cpusetCPUsStr := numaCpusetWithMem.String()
-							cpusetMemsStr := numaCpusetWithMem.Memstring()
-
-							klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: updating configs for cpusets for task %s of container %s of pod %s", taskID, containerID, podUID)
-							//configs[qosClass].ResourceParameters.CpusetCpus = &cpusetCPUsStr
-							//configs[qosClass].ResourceParameters.CpusetMems = &cpusetMemsStr
 						}
 					}
 				}
 
+				// 6. Determine the most often NUMA node desired by the container among preferredNUMAnodesByContainer
+				// and assign the corresponding cpuset.
+				// TODO: take into account migration to other NUMA nodes (matrix)! Original NUMA node?
+				occurencies := make(map[int]int)
+				for _ , preferredNUMAnode :=  range preferredNUMAnodesByContainer {
+						occurencies[preferredNUMAnode] = occurencies[preferredNUMAnode] + 1
+				}
+
+				var occs []int
+				for _, val := range occurencies {
+    			occs = append(occs, val)
+				}
+
+				sort.Ints(sort.Reverse(sort.IntSlice(occs))
+				occsMax := occs[0]
+				preferredNUMAnode := 0
+				for key, val := range occurencies {
+					if(val == occsMax) {
+						preferredNUMAnode = key
+						break
+					}
+				}
+
+				preferredCpuset := m.topoNUMA.GetCPUSetByNodeID(preferredNUMAnode)
+
+				// 7. Update cpusets for the QoS class of the pod
+				cpusetCPUsStr := preferredCpuset.String()
+				cpusetMemsStr := preferredCpuset.Memstring()
+
+				klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: updating configs for cpusets for container %s of pod %s", taskID, containerID, podUID)
+
+				// Note that the root cgroup is 'kubepods', hence all the modifications have to come after it ->
+				// libcontainer deals with cgroup subsystems through resources, so we don't have to mention them
+				// in the name of the cgroup.
+				cgroupNameForContainer := NewCgroupName(rootContainer, strings.ToLower(string(qosClass)), podUID, containerID)
 				configs[containerID] = CgroupConfig{
-						Name:               m.qosContainersInfo.Burstable,
+						Name:               cgroupNameForContainer,
 						ResourceParameters: &ResourceConfig{
 							CpusetCpus = &cpusetCPUsStr,
 							CpusetMems = &cpusetMemsStr,
