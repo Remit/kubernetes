@@ -243,7 +243,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[v1.PodQOSCl
 
 			// Preparations depending on QoS class
 			cgroupKubepodsDir := "/sys/fs/cgroup/cpu/kubepods/"
-			podUID := pod.UID
+			podUID := string(pod.UID)
 			qosClass := v1qos.GetPodQOS(pod)
 			if qosClass == v1.PodQOSBurstable {
 				cgroupKubepodsDir = cgroupKubepodsDir + "burstable/"
