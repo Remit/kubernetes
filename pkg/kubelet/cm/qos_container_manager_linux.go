@@ -435,17 +435,20 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 									statStringRaw := string(statBytesRaw)
 									// When splitting the stat string we need to take into account compound proc names that include
 									// space, e.g. (V8 WorkerThread) -> they are always in parentheses, which we use
+									cpuIDLastExecutedOn := 0
 									statStringAfterName := strings.Split(statStringRaw, ") ")
-									statsForProc := strings.Split(statStringAfterName, " ")
-									cpuIDLastExecutedOn, err := strconv.Atoi(statsForProc[36])
-									if err != nil {
-										return err
+									if len(statStringAfterName) > 1 {
+										statsForProc := strings.Split(statStringAfterName[1], " ")
+										cpuIDLastExecutedOn, err = strconv.Atoi(statsForProc[36])
+										if err != nil {
+											return err
+										}
 									}
 
 									singleCPUcpuset := cpuset.NewCPUSet(cpuIDLastExecutedOn)
 									preferredNUMAnodeByProcID := m.topoNUMA.GetNUMANodeIDbyCPU(singleCPUcpuset)
 									klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: for task %s of container %s of pod %s got CPU#%d where it last run, hence NUMA node #%d is appropriate", taskID, containerID, podUID, cpuIDLastExecutedOn, preferredNUMAnodeByProcID)
-									
+
 									preferredNUMAnodesByContainer = append(preferredNUMAnodesByContainer, preferredNUMAnodeByProcID)
 								}
 							}
