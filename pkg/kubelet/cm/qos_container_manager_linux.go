@@ -282,214 +282,217 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 			}
 
 			cgroupPodSubdirs := filterFileInfo(cgroupPodDirContents, filterByPodUID)
-			// pods are unique...
-			podFSName := cgroupPodSubdirs[0].Name()
-			cgroupContainersDir := cgroupKubepodsDir + podFSName + "/"
 
-			klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: pod %s has its settings in %s folder of Cgroups", podUID, cgroupContainersDir)
+			// Cheking if the pod was already created
+			if len(cgroupPodSubdirs) > 0 {
+				// pods are unique...
+				podFSName := cgroupPodSubdirs[0].Name()
+				cgroupContainersDir := cgroupKubepodsDir + podFSName + "/"
 
-			// For each pod's container...
-			for _, containerStatus := range pod.Status.ContainerStatuses {
-				// 1. Extract IDs of containers of each pod
-				preferredNUMAnodesByContainer := []int{}
-				containerIDRaw := containerStatus.ContainerID
-				prefixLen := len("docker://")
-				containerID := containerIDRaw[ prefixLen : ]
+				klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: pod %s has its settings in %s folder of Cgroups", podUID, cgroupContainersDir)
 
-				// 2. Getting task IDs for the container based on container id
-			  cgroupContainersDirContents, err := fs.ReadDir(cgroupContainersDir)
+				// For each pod's container...
+				for _, containerStatus := range pod.Status.ContainerStatuses {
+					// 1. Extract IDs of containers of each pod
+					preferredNUMAnodesByContainer := []int{}
+					containerIDRaw := containerStatus.ContainerID
+					prefixLen := len("docker://")
+					containerID := containerIDRaw[ prefixLen : ]
 
-				if err != nil {
-					return err
-				}
+					// 2. Getting task IDs for the container based on container id
+				  cgroupContainersDirContents, err := fs.ReadDir(cgroupContainersDir)
 
-				filterByContainerID := func(fileInfoEntry os.FileInfo) bool {
-			    rawName := fileInfoEntry.Name()
-			    return strings.Contains(rawName, containerID)
-			  }
-
-			  cgroupContainersSubdirs := filterFileInfo(cgroupContainersDirContents, filterByContainerID)
-
-				for _, cgroupContainersSubdir := range cgroupContainersSubdirs {
-					rawName := cgroupContainersSubdir.Name()
-					tasksFileName := cgroupContainersDir + rawName + "/tasks"
-
-					tasksBytesRaw, err := fs.ReadFile(tasksFileName)
 					if err != nil {
 						return err
 					}
 
-					tasksStringRaw := string(tasksBytesRaw)
-					taskIDs := strings.Split(tasksStringRaw, "\n")
+					filterByContainerID := func(fileInfoEntry os.FileInfo) bool {
+				    rawName := fileInfoEntry.Name()
+				    return strings.Contains(rawName, containerID)
+				  }
 
-					// For each container's task...
-					for _, taskID := range taskIDs {
-						// 3. Check if the task is already bound to some NUMA node
-						statusFileName := "/proc/" + taskID + "/status"
-						statusBytesRaw, err := fs.ReadFile(statusFileName)
+				  cgroupContainersSubdirs := filterFileInfo(cgroupContainersDirContents, filterByContainerID)
+
+					for _, cgroupContainersSubdir := range cgroupContainersSubdirs {
+						rawName := cgroupContainersSubdir.Name()
+						tasksFileName := cgroupContainersDir + rawName + "/tasks"
+
+						tasksBytesRaw, err := fs.ReadFile(tasksFileName)
 						if err != nil {
 							return err
 						}
 
-						statusStringRaw := string(statusBytesRaw)
-						statusStrings := strings.Split(statusStringRaw, "\n")
-						statusString := statusStrings[4]
+						tasksStringRaw := string(tasksBytesRaw)
+						taskIDs := strings.Split(tasksStringRaw, "\n")
 
-						if !strings.Contains(statusString, "Ngid") {
-							for _, statusString = range statusStrings {
-	    					if strings.Contains(statusString, "Ngid") {
-	        				break
-	    					}
+						// For each container's task...
+						for _, taskID := range taskIDs {
+							// 3. Check if the task is already bound to some NUMA node
+							statusFileName := "/proc/" + taskID + "/status"
+							statusBytesRaw, err := fs.ReadFile(statusFileName)
+							if err != nil {
+								return err
 							}
-						}
 
-						numaStatStr := statusString[ (len(statusString) - 1) :]
-						numaStat, err := strconv.Atoi(numaStatStr)
-						if err != nil {
-							numaStat = 0
-						}
+							statusStringRaw := string(statusBytesRaw)
+							statusStrings := strings.Split(statusStringRaw, "\n")
+							statusString := statusStrings[4]
 
-						// If the task is not yet bound to the NUMA node...
-						if numaStat == 0 {
-							klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: task %s of container %s of pod %s is not yet bound to any NUMA node. Binding...", taskID, containerID, podUID)
-
-							// 4. Find appropriate cpuset to run the task based on locality and (if enabled) stack placement
-							if stackBound {
-								// 5.a. Look up NUMA memory node where the process cache is, and push process to run closer to its cache
-								// -> cache/memory locality [has to be set explicitly through pod label]
-								// Reference: https://linux.die.net/man/5/numa_maps
-								numaMapsFileName := "/proc/" + taskID + "/numa_maps"
-								numaMapsBytesRaw, err := fs.ReadFile(numaMapsFileName)
-								if err != nil {
-									return err
+							if !strings.Contains(statusString, "Ngid") {
+								for _, statusString = range statusStrings {
+		    					if strings.Contains(statusString, "Ngid") {
+		        				break
+		    					}
 								}
+							}
 
-								numaMapsStringRaw := string(numaMapsBytesRaw)
-								numaMaps := strings.Split(numaMapsStringRaw, "\n")
+							numaStatStr := statusString[ (len(statusString) - 1) :]
+							numaStat, err := strconv.Atoi(numaStatStr)
+							if err != nil {
+								numaStat = 0
+							}
 
-								filterByStackAffiliation := func(numaMap string) bool {
-							    return strings.Contains(numaMap, "stack")
-							  }
+							// If the task is not yet bound to the NUMA node...
+							if numaStat == 0 {
+								klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: task %s of container %s of pod %s is not yet bound to any NUMA node. Binding...", taskID, containerID, podUID)
 
-							  numaMapsAffiliatedWithStack := filterString(numaMaps, filterByStackAffiliation)
+								// 4. Find appropriate cpuset to run the task based on locality and (if enabled) stack placement
+								if stackBound {
+									// 5.a. Look up NUMA memory node where the process cache is, and push process to run closer to its cache
+									// -> cache/memory locality [has to be set explicitly through pod label]
+									// Reference: https://linux.die.net/man/5/numa_maps
+									numaMapsFileName := "/proc/" + taskID + "/numa_maps"
+									numaMapsBytesRaw, err := fs.ReadFile(numaMapsFileName)
+									if err != nil {
+										return err
+									}
 
-								// Identifying how many mem pages were allocated for stack of the given task at each NUMA node
-								stackPagesOnNUMANodes := make(map[int]int)
-								for _, numaMapStackString := range numaMapsAffiliatedWithStack {
-									numaMapStackComponents := strings.Split(numaMapStackString, " ")
+									numaMapsStringRaw := string(numaMapsBytesRaw)
+									numaMaps := strings.Split(numaMapsStringRaw, "\n")
 
-									for i := 0; i < m.topoNUMA.NumNodes; i++ {
-										filterKey := "N" + strconv.Itoa(i) + "="
+									filterByStackAffiliation := func(numaMap string) bool {
+								    return strings.Contains(numaMap, "stack")
+								  }
 
-										filterByNUMANode := func(component string) bool {
-									    return strings.Contains(component, filterKey)
-									  }
+								  numaMapsAffiliatedWithStack := filterString(numaMaps, filterByStackAffiliation)
 
-										numaMapStackComponentsForNode := filterString(numaMapStackComponents, filterByNUMANode)
-										numStackPagesOnNUMANode := 0
-										if len(numaMapStackComponentsForNode) > 0 {
-											numaMapStackComponentForNode := numaMapStackComponentsForNode[0]
-											numStackPagesOnNUMANode, err = strconv.Atoi(strings.Split(numaMapStackComponentForNode, "=")[1])
+									// Identifying how many mem pages were allocated for stack of the given task at each NUMA node
+									stackPagesOnNUMANodes := make(map[int]int)
+									for _, numaMapStackString := range numaMapsAffiliatedWithStack {
+										numaMapStackComponents := strings.Split(numaMapStackString, " ")
 
-											if err != nil {
-												return err
+										for i := 0; i < m.topoNUMA.NumNodes; i++ {
+											filterKey := "N" + strconv.Itoa(i) + "="
+
+											filterByNUMANode := func(component string) bool {
+										    return strings.Contains(component, filterKey)
+										  }
+
+											numaMapStackComponentsForNode := filterString(numaMapStackComponents, filterByNUMANode)
+											numStackPagesOnNUMANode := 0
+											if len(numaMapStackComponentsForNode) > 0 {
+												numaMapStackComponentForNode := numaMapStackComponentsForNode[0]
+												numStackPagesOnNUMANode, err = strconv.Atoi(strings.Split(numaMapStackComponentForNode, "=")[1])
+
+												if err != nil {
+													return err
+												}
 											}
+
+											klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: for task %s of container %s of pod %s %d stack pages were allocated on NUMA node #%d", taskID, containerID, podUID, numStackPagesOnNUMANode, i)
+											stackPagesOnNUMANodes[i] = stackPagesOnNUMANodes[i] + numStackPagesOnNUMANode
 										}
-
-										klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: for task %s of container %s of pod %s %d stack pages were allocated on NUMA node #%d", taskID, containerID, podUID, numStackPagesOnNUMANode, i)
-										stackPagesOnNUMANodes[i] = stackPagesOnNUMANodes[i] + numStackPagesOnNUMANode
 									}
-								}
 
-								var pages []int
-								for _, val := range stackPagesOnNUMANodes {
-				    			pages = append(pages, val)
-								}
-
-								sort.Sort(sort.Reverse(sort.IntSlice(pages)))
-								pagesMax := pages[0]
-								preferredNUMAnodeByPagesOfStack := 0
-								for key, val := range stackPagesOnNUMANodes {
-									if(val == pagesMax) {
-										preferredNUMAnodeByPagesOfStack = key
-										break
+									var pages []int
+									for _, val := range stackPagesOnNUMANodes {
+					    			pages = append(pages, val)
 									}
+
+									sort.Sort(sort.Reverse(sort.IntSlice(pages)))
+									pagesMax := pages[0]
+									preferredNUMAnodeByPagesOfStack := 0
+									for key, val := range stackPagesOnNUMANodes {
+										if(val == pagesMax) {
+											preferredNUMAnodeByPagesOfStack = key
+											break
+										}
+									}
+
+									klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: for task %s of container %s of pod %s NUMA node #%d was identified as preferred node by stack location", taskID, containerID, podUID, preferredNUMAnodeByPagesOfStack)
+									preferredNUMAnodesByContainer = append(preferredNUMAnodesByContainer, preferredNUMAnodeByPagesOfStack)
+									// TODO: consider checking possibility of migration in cpuset???
+								} else {
+									// 5.b. Get ID of the CPU where the task was last executed and fix memory to be in the same NUMA node
+									// (in case of tasks scattered across NUMA nodes we determine the NUMA node where most tasks are running)
+									// -> process locality [default]
+									statFileName := "/proc/" + taskID + "/stat"
+									statBytesRaw, err := fs.ReadFile(statFileName)
+									if err != nil {
+										return err
+									}
+
+									statStringRaw := string(statBytesRaw)
+									statsForProc := strings.Split(statStringRaw, " ")
+									cpuIDLastExecutedOn, err := strconv.Atoi(statsForProc[38])
+									if err != nil {
+										return err
+									}
+
+									klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: for task %s of container %s of pod %s got CPU where it last run: %d", taskID, containerID, podUID, cpuIDLastExecutedOn)
+
+									singleCPUcpuset := cpuset.NewCPUSet(cpuIDLastExecutedOn)
+									preferredNUMAnodesByContainer = append(preferredNUMAnodesByContainer, m.topoNUMA.GetNUMANodeIDbyCPU(singleCPUcpuset))
 								}
-
-								klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: for task %s of container %s of pod %s NUMA node #%d was identified as preferred node by stack location", taskID, containerID, podUID, preferredNUMAnodeByPagesOfStack)
-								preferredNUMAnodesByContainer = append(preferredNUMAnodesByContainer, preferredNUMAnodeByPagesOfStack)
-								// TODO: consider checking possibility of migration in cpuset???
-							} else {
-								// 5.b. Get ID of the CPU where the task was last executed and fix memory to be in the same NUMA node
-								// (in case of tasks scattered across NUMA nodes we determine the NUMA node where most tasks are running)
-								// -> process locality [default]
-								statFileName := "/proc/" + taskID + "/stat"
-								statBytesRaw, err := fs.ReadFile(statFileName)
-								if err != nil {
-									return err
-								}
-
-								statStringRaw := string(statBytesRaw)
-								statsForProc := strings.Split(statStringRaw, " ")
-								cpuIDLastExecutedOn, err := strconv.Atoi(statsForProc[38])
-								if err != nil {
-									return err
-								}
-
-								klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: for task %s of container %s of pod %s got CPU where it last run: %d", taskID, containerID, podUID, cpuIDLastExecutedOn)
-
-								singleCPUcpuset := cpuset.NewCPUSet(cpuIDLastExecutedOn)
-								preferredNUMAnodesByContainer = append(preferredNUMAnodesByContainer, m.topoNUMA.GetNUMANodeIDbyCPU(singleCPUcpuset))
 							}
 						}
 					}
-				}
 
-				// 6. Determine the most often NUMA node desired by the container among preferredNUMAnodesByContainer
-				// and assign the corresponding cpuset.
-				// TODO: take into account migration to other NUMA nodes (matrix)! Original NUMA node?
-				occurencies := make(map[int]int)
-				for _ , preferredNUMAnode :=  range preferredNUMAnodesByContainer {
-						occurencies[preferredNUMAnode] = occurencies[preferredNUMAnode] + 1
-				}
-
-				var occs []int
-				for _, val := range occurencies {
-    			occs = append(occs, val)
-				}
-
-				sort.Sort(sort.Reverse(sort.IntSlice(occs)))
-				occsMax := occs[0]
-				preferredNUMAnode := 0
-				for key, val := range occurencies {
-					if(val == occsMax) {
-						preferredNUMAnode = key
-						break
+					// 6. Determine the most often NUMA node desired by the container among preferredNUMAnodesByContainer
+					// and assign the corresponding cpuset.
+					// TODO: take into account migration to other NUMA nodes (matrix)! Original NUMA node?
+					occurencies := make(map[int]int)
+					for _ , preferredNUMAnode :=  range preferredNUMAnodesByContainer {
+							occurencies[preferredNUMAnode] = occurencies[preferredNUMAnode] + 1
 					}
+
+					var occs []int
+					for _, val := range occurencies {
+	    			occs = append(occs, val)
+					}
+
+					sort.Sort(sort.Reverse(sort.IntSlice(occs)))
+					occsMax := occs[0]
+					preferredNUMAnode := 0
+					for key, val := range occurencies {
+						if(val == occsMax) {
+							preferredNUMAnode = key
+							break
+						}
+					}
+
+					preferredCpuset := m.topoNUMA.GetCPUSetByNodeID(preferredNUMAnode)
+
+					// 7. Update cpusets for the QoS class of the pod
+					cpusetCPUsStr := preferredCpuset.String()
+					cpusetMemsStr := preferredCpuset.Memstring()
+
+					klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: updating configs for cpusets for container %s of pod %s", containerID, podUID)
+
+					// Note that the root cgroup is 'kubepods', hence all the modifications have to come after it ->
+					// libcontainer deals with cgroup subsystems through resources, so we don't have to mention them
+					// in the name of the cgroup.
+					cgroupNameForContainer := NewCgroupName(rootContainer, strings.ToLower(string(qosClass)), podUID, containerID)
+					curContainerConfig := CgroupConfig{
+							Name:               cgroupNameForContainer,
+							ResourceParameters: &ResourceConfig{
+								CpusetCpus: &cpusetCPUsStr,
+								CpusetMems: &cpusetMemsStr,
+							},
+					}
+					configs[containerID] = &curContainerConfig
 				}
-
-				preferredCpuset := m.topoNUMA.GetCPUSetByNodeID(preferredNUMAnode)
-
-				// 7. Update cpusets for the QoS class of the pod
-				cpusetCPUsStr := preferredCpuset.String()
-				cpusetMemsStr := preferredCpuset.Memstring()
-
-				klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: updating configs for cpusets for container %s of pod %s", containerID, podUID)
-
-				// Note that the root cgroup is 'kubepods', hence all the modifications have to come after it ->
-				// libcontainer deals with cgroup subsystems through resources, so we don't have to mention them
-				// in the name of the cgroup.
-				cgroupNameForContainer := NewCgroupName(rootContainer, strings.ToLower(string(qosClass)), podUID, containerID)
-				curContainerConfig := CgroupConfig{
-						Name:               cgroupNameForContainer,
-						ResourceParameters: &ResourceConfig{
-							CpusetCpus: &cpusetCPUsStr,
-							CpusetMems: &cpusetMemsStr,
-						},
-				}
-				configs[containerID] = &curContainerConfig
 			}
-
 		}
 	}
 
