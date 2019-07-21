@@ -248,8 +248,8 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 
 			// Checking if we need to prioritize placing of threads on NUMA nodes where their stack is
 			stackBound := false
-			if val, ok := pod.Labels["stackbound"]; ok {
-				if val == "true" {
+			if val, ok := pod.Labels["stackpolicy"]; ok {
+				if val == "stackposaware" {
 					stackBound = true
 				}
 			}
