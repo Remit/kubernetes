@@ -433,16 +433,20 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 									}
 
 									statStringRaw := string(statBytesRaw)
-									statsForProc := strings.Split(statStringRaw, " ")
-									cpuIDLastExecutedOn, err := strconv.Atoi(statsForProc[38])
+									// When splitting the stat string we need to take into account compound proc names that include
+									// space, e.g. (V8 WorkerThread) -> they are always in parentheses, which we use
+									statStringAfterName := strings.Split(statStringRaw, ") ")
+									statsForProc := strings.Split(statStringAfterName, " ")
+									cpuIDLastExecutedOn, err := strconv.Atoi(statsForProc[36])
 									if err != nil {
 										return err
 									}
 
-									klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: for task %s of container %s of pod %s got CPU where it last run: %d", taskID, containerID, podUID, cpuIDLastExecutedOn)
-
 									singleCPUcpuset := cpuset.NewCPUSet(cpuIDLastExecutedOn)
-									preferredNUMAnodesByContainer = append(preferredNUMAnodesByContainer, m.topoNUMA.GetNUMANodeIDbyCPU(singleCPUcpuset))
+									preferredNUMAnodeByProcID := m.topoNUMA.GetNUMANodeIDbyCPU(singleCPUcpuset)
+									klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: for task %s of container %s of pod %s got CPU#%d where it last run, hence NUMA node #%d is appropriate", taskID, containerID, podUID, cpuIDLastExecutedOn, preferredNUMAnodeByProcID)
+									
+									preferredNUMAnodesByContainer = append(preferredNUMAnodesByContainer, preferredNUMAnodeByProcID)
 								}
 							}
 						}
