@@ -375,7 +375,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 
 								// Identifying how many mem pages were allocated for stack of the given task at each NUMA node
 								stackPagesOnNUMANodes := make(map[int]int)
-								for numaMapStackString := range numaMapsAffiliatedWithStack {
+								for _, numaMapStackString := range numaMapsAffiliatedWithStack {
 									numaMapStackComponents := strings.Split(numaMapStackString, " ")
 
 									for i := 0; i < m.topoNUMA.NumNodes; i++ {
@@ -389,7 +389,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 										numStackPagesOnNUMANode := 0
 										if len(numaMapStackComponentsForNode) > 0 {
 											numaMapStackComponentForNode := numaMapStackComponentsForNode[0]
-											numStackPagesOnNUMANode, err := strconv.Atoi(strings.Split(numaMapStackComponentForNode, "="))
+											numStackPagesOnNUMANode, err := strconv.Atoi(strings.Split(numaMapStackComponentForNode, "=")[1])
 
 											if err != nil {
 												return err
