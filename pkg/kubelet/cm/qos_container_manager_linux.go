@@ -389,7 +389,7 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 										numStackPagesOnNUMANode := 0
 										if len(numaMapStackComponentsForNode) > 0 {
 											numaMapStackComponentForNode := numaMapStackComponentsForNode[0]
-											numStackPagesOnNUMANode, err := strconv.Atoi(strings.Split(numaMapStackComponentForNode, "=")[1])
+											numStackPagesOnNUMANode, err = strconv.Atoi(strings.Split(numaMapStackComponentForNode, "=")[1])
 
 											if err != nil {
 												return err
