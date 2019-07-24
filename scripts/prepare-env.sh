@@ -6,7 +6,14 @@
 # Arguments:
 # 1 - path to kubernetes code
 
-cd $1
+kubernetescode='.'
+
+if [ ! -z "$1" ]
+  then
+    kubernetescode=$1
+fi
+
+cd $(kubernetescode)
 
 # Installing golang
 echo "[$(date)] Installing golang..."

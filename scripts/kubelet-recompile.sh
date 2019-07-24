@@ -1,7 +1,16 @@
 #!/bin/sh
 # The script is executed whenever the updates to kubelet code are introduced
+# Arguments:
+# 1 - path to kubernetes code
 
-cd ..
+kubernetescode='.'
+
+if [ ! -z "$1" ]
+  then
+    kubernetescode=$1
+fi
+
+cd $(kubernetescode)
 git pull
 
 # The command below makes a dockerized build and copies compiled binaries
