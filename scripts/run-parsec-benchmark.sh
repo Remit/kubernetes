@@ -42,8 +42,8 @@ do
     fi
 
     # Conducting test nruns times and collecting the results whenever the processing is finished
-    i=0
-    while [ "$i" -lt "$nruns" ]
+    i=1
+    while [ "$i" -le "$nruns" ]
     do
       # Preparing for the run
       echo "[$(date)] benchmarking with ${podconfig}: starting run ${i}"
@@ -56,15 +56,14 @@ do
 
       # Waiting till the benchmark is done
       benchdone=false
-      while [ ! $benchdone ]; do
+      while ! ${benchdone}
+      do
         sleep 60 ;
 
         status=$(sudo kubectl --kubeconfig /etc/kubernetes/admin.conf describe pod ${podname} | grep Status | sed -n '1 p' | cut -d":" -f 2 | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
         if [ status == "Succeeded" ]; then
           benchdone=true
-        else
-          benchdone=false
         fi
       done
 
@@ -76,7 +75,7 @@ do
 
       i=$(( i + 1 ))
 
-      echo "[$(date)] benchmarking with ${podconfig}: finishing run ${i}, the results are stored in file ${testrunres}"
+      echo "[$(date)] benchmarking with ${podconfig}: finishing run ${i} of pod ${podname}, the results are stored in file ${testrunres}"
     done
 done
 
