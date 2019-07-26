@@ -42,7 +42,7 @@ do
     fi
 
     # Conducting test nruns times and collecting the results whenever the processing is finished
-    for i in {1..${nruns}}
+    for ((i=1; i <= ${nruns}; i++))
     do
       # Preparing for the run
       echo "[$(date)] benchmarking with ${podconfig}: starting run ${i}"
