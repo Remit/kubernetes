@@ -62,7 +62,7 @@ do
 
         status=$(sudo kubectl --kubeconfig /etc/kubernetes/admin.conf describe pod ${podname} | grep Status | sed -n '1 p' | cut -d":" -f 2 | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
-        if [ "$status" == "Succeeded" ]; then
+        if [ "$status" = "Succeeded" ]; then
           benchdone=true
         fi
       done
