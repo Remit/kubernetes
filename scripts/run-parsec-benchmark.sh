@@ -21,7 +21,7 @@ if [ ! -z "$2" ]
     nruns=$2
 fi
 
-cd $(kubernetescode)/benchmarks/parsec
+cd ${kubernetescode}/benchmarks/parsec
 
 # Creating the directory for the results
 if [ ! -d results ]; then
@@ -38,12 +38,12 @@ do
     # Making the directory to store the results for a particular test (if does not exist)
     resfname=results/${podconfig%.*}
 
-    if [ ! -d $resfname ]; then
-      mkdir $resfname
+    if [ ! -d ${resfname} ]; then
+      mkdir ${resfname}
     fi
 
     # Conducting test nruns times and collecting the results whenever the processing is finished
-    for i in {1..$nruns}
+    for i in {1..${nruns}}
     do
       # Preparing for the run
       echo "[$(date)] benchmarking with ${podconfig}: starting run ${i}"
