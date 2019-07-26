@@ -42,7 +42,8 @@ do
     fi
 
     # Conducting test nruns times and collecting the results whenever the processing is finished
-    for ((i=1; i <= ${nruns}; i++))
+    i=0
+    while [ "$i" -lt "$nruns" ]
     do
       # Preparing for the run
       echo "[$(date)] benchmarking with ${podconfig}: starting run ${i}"
@@ -72,6 +73,8 @@ do
 
       # Terminating the pod
       sudo kubectl --kubeconfig /etc/kubernetes/admin.conf delete pod ${podname} --force --grace-period=0
+
+      i=$(( i + 1 ))
 
       echo "[$(date)] benchmarking with ${podconfig}: finishing run ${i}, the results are stored in file ${testrunres}"
     done
