@@ -1,14 +1,17 @@
 #!/usr/bin/env Rscript
 # Execution format for the command line:
-# Rscript ParsecLogsAnalysis.R --benchmarkpath=. --resultspath=.
+# Rscript ParsecLogsAnalysis.R --benchmarkpath=. --analysispath=.
+# Tests:
+# benchmarkpath <- "D:/@TUM/UCC-2019/code/kubernetes/benchmarks/parsec"
+# analysispath <- "D:/@TUM/UCC-2019/code/kubernetes/benchmarks/parsec/tst"
 
 benchmarkpath.prefix <- "--benchmarkpath="
-resultspath.prefix <- "--resultspath="
+analysispath.prefix <- "--resultspath="
 
 benchmarkpath <- cmd.args[which(grepl(benchmarkpath.prefix, cmd.args))]
-resultspath <- cmd.args[which(grepl(resultspath.prefix, cmd.args))]
+analysispath <- cmd.args[which(grepl(analysispath.prefix, cmd.args))]
 
-if((length(benchmarkpath) == 0) || (length(resultspath) == 0)) {
+if((length(benchmarkpath) == 0) || (length(analysispath) == 0)) {
   print("Necessary parameters were not specified! Exiting.")
 } else {
   
@@ -16,9 +19,9 @@ if((length(benchmarkpath) == 0) || (length(resultspath) == 0)) {
                              nchar(benchmarkpath.prefix) + 1,
                              nchar(benchmarkpath))
   
-  resultspath <- substring(resultspath,
-                           nchar(resultspath.prefix) + 1,
-                           nchar(resultspath))
+  analysispath <- substring(analysispath,
+                           nchar(analysispath.prefix) + 1,
+                           nchar(analysispath))
   
   get.execution.time.from.string <- function(string) {
     timestr <- strsplit(string, "\t")[[1]][2]
@@ -142,8 +145,91 @@ if((length(benchmarkpath) == 0) || (length(resultspath) == 0)) {
   
   require(data.table)
   full.tests.df <- rbindlist(lapply(dirs, get.results.for.single.test, benchmarkpath))
+  
+  # Processing the results (~analysis)
+  require(dplyr)
+  require(magrittr)
+  
+  summary.test.results <- full.tests.df %>%
+    dplyr::group_by(suite, benchmark.program, benchmark.input, qos.class, separate.socket.pol, numaaware.numa.pol, stackposaware.stack.pol) %>%
+    dplyr::summarise(meantime = sum(timereal) / n(),
+                     sdtime = sd(timereal))
+  
+  tests.combinations <- unique(data.frame(full.tests.df$benchmark.program, full.tests.df$benchmark.input))
+  names(tests.combinations) <- c("benchmark.program", "benchmark.input")
+  
+  make.plots.for.given.test <- function(test.combination, full.tests.df, analysispath) {
+    require(gtools)
+    require(ggplot2)
+    
+    benchmark.program <- test.combination["benchmark.program"]
+    benchmark.input <- test.combination["benchmark.input"]
+    full.tests.df.filtered <- full.tests.df[(full.tests.df$benchmark.program == benchmark.program) & (full.tests.df$benchmark.input == benchmark.input), ]
+    
+    params.combinations <- as.data.frame(gtools::permutations(2, 3, c(TRUE, FALSE), repeats.allowed = TRUE))[2:8,]
+    names(params.combinations) <- c("separate.socket.pol", "numaaware.numa.pol", "stackposaware.stack.pol")
+    
+    make.plot.for.given.config <- function(config.row, full.tests.df.filtered, analysispath, benchmark.program, benchmark.input) {
+      separate.socket.pol <- as.logical(config.row["separate.socket.pol"])
+      numaaware.numa.pol <- as.logical(config.row["numaaware.numa.pol"])
+      stackposaware.stack.pol <- as.logical(config.row["stackposaware.stack.pol"])
+      
+      selector.l <- (full.tests.df.filtered$separate.socket.pol %in% separate.socket.pol) & (full.tests.df.filtered$numaaware.numa.pol %in% numaaware.numa.pol) & (full.tests.df.filtered$stackposaware.stack.pol %in% stackposaware.stack.pol)
+      
+      configured.data <- full.tests.df.filtered[selector.l,]
+      if(nrow(configured.data) > 0) {
+        configured.data$configuration <- rep("Configured", nrow(configured.data))
+        
+        selector.l.nullconf <- (full.tests.df.filtered$separate.socket.pol %in% FALSE) & (full.tests.df.filtered$numaaware.numa.pol %in% FALSE) & (full.tests.df.filtered$stackposaware.stack.pol %in% FALSE)
+        baseline.data <- full.tests.df.filtered[selector.l.nullconf,]
+        baseline.data$configuration <- rep("Not configured", nrow(baseline.data))
+        
+        data.to.plot <- rbind(baseline.data, configured.data)
+        
+        pic.name <- paste0(benchmark.program,
+                           "-",
+                           benchmark.input,
+                           "-",
+                           as.numeric(separate.socket.pol),
+                           "-",
+                           as.numeric(numaaware.numa.pol),
+                           "-",
+                           as.numeric(stackposaware.stack.pol),
+                           ".png")
+        
+        png(filename=paste0(analysispath, "/", pic.name), width = 800, height = 800)
+        print({
+          ggplot(data.to.plot, aes(x=qos.class, y=timereal, fill=qos.class)) +
+            geom_boxplot() +
+            facet_wrap(~configuration) +
+            labs(title = paste0("Runtime for ",
+                           benchmark.program,
+                           " with input ",
+                           benchmark.input,
+                           "\nand settings: Separate Sockets (",
+                           separate.socket.pol,
+                           "); NUMA-awareness (",
+                           numaaware.numa.pol,
+                           "); stack-pos-awareness (",
+                           stackposaware.stack.pol,
+                           ")"),
+                 x = "Pod QoS Class",
+                 y = "Runtime, s.",
+                 fill = "Pod QoS Class")
+        })
+        dev.off()
+      }
+    }
+    
+    apply(params.combinations, 1, make.plot.for.given.config, full.tests.df.filtered, analysispath, benchmark.program, benchmark.input)
+  }
+  
+  apply(tests.combinations, 1, make.plots.for.given.test, full.tests.df, analysispath)
+  
+  # Saving the data on disk as csv
+  write.csv(full.tests.df, paste0(analysispath, "/rawtestresults.csv"), row.names = FALSE)
+  write.csv(summary.test.results, paste0(analysispath, "/summarytestresults.csv"), row.names = FALSE)
+  results <- list(rawtestresults = full.tests.df,
+                  summarytestresults = summary.test.results)
+  save(results, file = paste0(analysispath, "/results.RData"))
 }
-
-# Add saving of data frame on disk
-# Add saving summary results in RData on disk
-# Add saving graphs on disk
