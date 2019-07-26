@@ -30,11 +30,9 @@ fi
 
 echo "[$(date)] parsec benchmarking starts..."
 # looping over available configurations...
-echo $(dir)
-for podconfig in $(dir)
+for podconfig in *.yaml
 do
   # If the file is not a directory...
-  if [ ! -d $podfonfig ]; then
     echo "[$(date)] benchmarking with ${podconfig}"
     # Making the directory to store the results for a particular test (if does not exist)
     resfname=results/${podconfig%.*}
@@ -77,7 +75,6 @@ do
 
       echo "[$(date)] benchmarking with ${podconfig}: finishing run ${i}, the results are stored in file ${testrunres}"
     done
-  fi
 done
 
 docker system prune -a -f
