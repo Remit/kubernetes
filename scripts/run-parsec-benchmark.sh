@@ -30,6 +30,7 @@ fi
 
 echo "[$(date)] parsec benchmarking starts..."
 # looping over available configurations...
+echo $(dir)
 for podconfig in $(dir)
 do
   # If the file is not a directory...
