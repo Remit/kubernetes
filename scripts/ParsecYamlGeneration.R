@@ -20,31 +20,13 @@
 # NOTE: it is advisable to select either one program or one size of the data ->
 # otherwise the full options set to consider is estimated at 1560.
 
-programs.def <- c("blackscholes",
-                  "bodytrack",
-                  "canneal",
-                  "dedup",
-                  "facesim",
-                  "ferret",
-                  "fluidanimate",
-                  "freqmine",
-                  "raytrace",
-                  "streamcluster",
-                  "swaptions",
-                  "vips",
-                  "x264")
+programs.def <- "blackscholes,bodytrack,canneal,dedup,facesim,ferret,fluidanimate,freqmine,raytrace,streamcluster,swaptions,vips,x264"
 
-sizes.def <- c("simdev",
-               "simsmall",
-               "simmedium",
-               "simlarge",
-               "native")
+sizes.def <- "simdev,simsmall,simmedium,simlarge,native"
 
-qos.def <- c("besteffort")
+qos.def <- "besteffort"
 
-labels.def <- c("separate",
-                "numaaware",
-                "stackposaware")
+labels.def <- "separate,numaaware,stackposaware"
 
 
 templatefile.prefix <- "--templatefile="
@@ -93,6 +75,8 @@ if((length(templatefile) == 0) || (length(yamldir) == 0)) {
                           nchar(programs))
   }
   
+  programs <- strsplit(programs, ",")[[1]]
+  
   if(length(sizes) == 0) {
     sizes <- sizes.def
   } else {
@@ -100,6 +84,8 @@ if((length(templatefile) == 0) || (length(yamldir) == 0)) {
                        nchar(sizes.prefix) + 1,
                        nchar(sizes))
   }
+  
+  sizes <- strsplit(sizes, ",")[[1]]
   
   if(length(qos) == 0) {
     qos <- qos.def
@@ -109,6 +95,8 @@ if((length(templatefile) == 0) || (length(yamldir) == 0)) {
                      nchar(qos))
   }
   
+  qos <- strsplit(qos, ",")[[1]]
+  
   if(length(labels) == 0) {
     labels <- labels.def
   } else {
@@ -116,6 +104,8 @@ if((length(templatefile) == 0) || (length(yamldir) == 0)) {
                         nchar(labels.prefix) + 1,
                         nchar(labels))
   }
+  
+  labels <- strsplit(labels, ",")[[1]]
   
   separate.socket.pol <- c(FALSE)
   if("separate" %in% labels) {
