@@ -76,6 +76,11 @@ sudo mkdir -p /etc/systemd/system/kubelet.service.d/
 sudo cp build/rpms/10-kubeadm.conf /etc/systemd/system/kubelet.service.d/
 echo "[$(date)] Custom kubelet service is prepared"
 
+# Installing R for analysis and benchmark generation scripts
+echo "[$(date)] Installing R for benchmark configs generation and results analysis..."
+sudo apt-get install r-base
+echo "[$(date)] R installed"
+
 # Done
 echo "[$(date)] Environment prepared"
 echo "INFO: Remember to check whether the correct host is used in /etc/hostname and /etc/hosts !"
