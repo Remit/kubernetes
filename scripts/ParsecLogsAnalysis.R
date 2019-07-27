@@ -8,6 +8,10 @@
 benchmarkpath.prefix <- "--benchmarkpath="
 analysispath.prefix <- "--resultspath="
 
+options(warn=-1)
+
+cmd.args <- commandArgs(trailingOnly = FALSE)
+
 benchmarkpath <- cmd.args[which(grepl(benchmarkpath.prefix, cmd.args))]
 analysispath <- cmd.args[which(grepl(analysispath.prefix, cmd.args))]
 

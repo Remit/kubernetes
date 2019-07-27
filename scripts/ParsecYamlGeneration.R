@@ -58,6 +58,9 @@ bu.limits.prefix <- "--bu.limits="
 gu.requests.prefix <- "--gu.requests="
 gu.limits.prefix <- "--gu.limits="
 
+options(warn=-1)
+
+cmd.args <- commandArgs(trailingOnly = FALSE)
 
 templatefile <- cmd.args[which(grepl(templatefile.prefix, cmd.args))]
 yamldir <- cmd.args[which(grepl(yamldir.prefix, cmd.args))]
