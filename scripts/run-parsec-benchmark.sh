@@ -28,6 +28,11 @@ if [ ! -d results ]; then
   mkdir results
 fi
 
+# Creating the directory for the analysis
+if [ ! -d analysis ]; then
+  mkdir analysis
+fi
+
 echo "[$(date)] parsec benchmarking starts..."
 # looping over available configurations...
 for podconfig in *.yaml
@@ -80,4 +85,5 @@ do
 done
 
 docker system prune -a -f
+sudo Rscript --benchmarkpath=${kubernetescode}/benchmarks/parsec --analysispath=${kubernetescode}/benchmarks/parsec/analysis
 echo "[$(date)] parsec benchmarking completed!"
