@@ -17,7 +17,7 @@ if [ ! -z "$1" ]
     kubernetescode=$1
 fi
 
-if [ $(ls /usr/bin/ | grep Rscript) = "Rscript"]; then
+if [ $(ls /usr/bin/ | grep Rscript) = "Rscript" ]; then
   sudo Rscript ParsecYamlGeneration.R \
   --templatefile=${kubernetescode}/scripts/template.yaml \
   --yamldir=${kubernetescode}/benchmarks/parsec \
