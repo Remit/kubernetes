@@ -237,3 +237,5 @@ if((length(benchmarkpath) == 0) || (length(analysispath) == 0)) {
                   summarytestresults = summary.test.results)
   save(results, file = paste0(analysispath, "/results.RData"))
 }
+
+# TODO: make geometric mean of speedups based on https://www.eee.hku.hk/~elec3441/sp17/handouts/Fleming_Wallace_86.pdf
