@@ -10,12 +10,13 @@ if [ ! -z "$1" ]
     kubernetescode=$1
 fi
 
-cd $(kubernetescode)
+cd $kubernetescode
+pwd
 git pull
 
 # The command below makes a dockerized build and copies compiled binaries
 # to _output/dockerized/bin/linux/amd64/ dir
-sudo build/run.sh make
+sudo ./build/run.sh make
 
 # Moving the compiled binaries to the bin folder for further execution
 sudo mv _output/dockerized/bin/linux/amd64/* /usr/bin/
