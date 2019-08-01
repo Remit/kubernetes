@@ -229,34 +229,28 @@ func takeByTopology(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, num
 	// into the socket -> otherwise continue as is with static policy.
 	if separateSockets && acc.needsLT(acc.topo.CPUsPerSocket()) {
 		freeS := acc.freeSockets()
-		s := freeS[0] // Get first free socket -> TODO: if there is a necessity to select the socket closest to I/O, then this should be changed
-		klog.V(4).Infof("[cpumanager-augmentation] takeByTopology: claiming whole or part of socket for pinned allocation [%d]", s)
-		// a) acquire whole socket if needed
-		if acc.needs(acc.topo.CPUsPerSocket()) {
-			acc.take(acc.details.CPUsInSocket(s), numaAware)
-			if acc.isSatisfied() {
-				return acc.result, nil
-			}
-		}
+		if len(freeS) > 0 {
+			s := freeS[0] // Get first free socket -> TODO: if there is a necessity to select the socket closest to I/O, then this should be changed
+			klog.V(4).Infof("[cpumanager-augmentation] takeByTopology: claiming socket %d for pinned allocation", s)
 
-		// b) acquire whole cores if needed
-		if acc.needs(acc.topo.CPUsPerCore()) {
-			for _, c := range acc.freeCores(s) {
-				acc.take(acc.details.CPUsInCore(c), numaAware)
+			// a) acquire whole cores if needed
+			if acc.needs(acc.topo.CPUsPerCore()) {
+				for _, c := range acc.freeCores(s) {
+					acc.take(acc.details.CPUsInCore(c), numaAware)
+					if acc.isSatisfied() {
+						return acc.result, nil
+					}
+				}
+			}
+
+			// b) acquire single threads if needed
+			for _, c := range acc.freeCPUs(s) {
+				if acc.needs(1) {
+					acc.take(cpuset.NewCPUSet(c), numaAware)
+				}
 				if acc.isSatisfied() {
 					return acc.result, nil
 				}
-			}
-		}
-
-		// c) acquire single threads if needed
-		// TODO: acc.freeCPUs() should be augmented too to get cores only from the particular socket
-		for _, c := range acc.freeCPUs(s) {
-			if acc.needs(1) {
-				acc.take(cpuset.NewCPUSet(c), numaAware)
-			}
-			if acc.isSatisfied() {
-				return acc.result, nil
 			}
 		}
 	}
