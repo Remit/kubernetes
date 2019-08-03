@@ -14,4 +14,21 @@ spec:
       protocol: TCP
       port: 8092
       nodePort: 8092
+    - name: query
+      protocol: TCP
+      port: 8093
+      nodePort: 8093
+    - name: search
+      protocol: TCP
+      port: 8094
+      nodePort: 8094
+    - name: data
+      protocol: TCP
+      port: 11210
+      nodePort: 11210
+    - name: moxi
+      protocol: TCP
+      port: 11211
+      nodePort: 11211
+
   type: NodePort

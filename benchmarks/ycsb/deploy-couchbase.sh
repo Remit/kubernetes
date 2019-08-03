@@ -21,7 +21,7 @@ curl -u carlos:mowgli19 -X POST http://127.0.0.1:8091/pools/default -d memoryQuo
 curl -u carlos:mowgli19 -X POST http://127.0.0.1:8091/pools/default/buckets -d name=ycsb -d ramQuotaMB=512 -d bucketType=couchbase -d flushEnabled=1 -d ioPriority=high
 
 # Setting up RBAC for Couchbase
-curl -X PUT --data "name=Ycsb&roles=bucket_full_access[ycsb]&password=mowgli19" -H "Content-Type: application/x-www-form-urlencoded" http://carlos:mowgli19@127.0.0.1:8091/settings/rbac/users/local/ycsb
+curl -X PUT --data "name=ycsb&roles=bucket_full_access[ycsb]&password=mowgli19" -H "Content-Type: application/x-www-form-urlencoded" http://carlos:mowgli19@127.0.0.1:8091/settings/rbac/users/local/ycsb
 
 # Setting autofailover
 curl -u carlos:mowgli19 -i -X POST http://127.0.0.1:8091/settings/autoFailover -d 'enabled=true&timeout=30'

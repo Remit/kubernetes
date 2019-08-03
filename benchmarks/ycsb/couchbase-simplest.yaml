@@ -24,6 +24,14 @@ spec:
             containerPort: 8091
           - name: views
             containerPort: 8092
+          - name: query
+            containerPort: 8093
+          - name: search
+            containerPort: 8094
+          - name: data
+            containerPort: 11210
+          - name: moxi
+            containerPort: 11211
         resources:
           requests:
             cpu: "0.5"
