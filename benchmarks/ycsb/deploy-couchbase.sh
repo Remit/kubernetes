@@ -7,6 +7,8 @@ sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/ycsb/co
 # To get port mappings
 sudo kubectl --kubeconfig /etc/kubernetes/admin.conf describe service couchbase-service
 
+sleep 90
+
 # Couchbase Starting
 # Reference: https://docs.couchbase.com/server/current/install/init-setup.html#initialize-cluster-rest
 
