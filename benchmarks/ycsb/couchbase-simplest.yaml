@@ -7,9 +7,6 @@ spec:
   containers:
   - name: couchbase-ctn
     image: couchbase:latest
-    ports:
-      - containerPort: 8091
-      - containerPort: 8092
     resources:
       requests:
         cpu: "0.5"
@@ -17,3 +14,5 @@ spec:
       limits:
         cpu: "0.5"
         memory: "4Gi"
+
+# sudo kubectl --kubeconfig /etc/kubernetes/admin.conf port-forward pods/couchbase-server 8091:8091
