@@ -4,7 +4,7 @@
 
 # public ip/dns of the couchbase instance
 # the workload-api instance assumes that all required ports are accessible to connect to Couchbase by using the default ports: https://docs.couchbase.com/server/current/install/install-ports.html
-COUCHBASE_IP=127.0.0.1
+COUCHBASE_IP=138.246.233.2
 
 # the publicly acessible ip/dns of the workload-api instance
 WORKLOAD_API_IP=127.0.0.1
