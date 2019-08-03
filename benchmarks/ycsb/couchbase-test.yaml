@@ -24,6 +24,8 @@ spec:
             containerPort: 8091
           - name: views
             containerPort: 8092
+        command: ["/bin/bash"]
+        args: ["-c", "/opt/couchbase/bin/couchbase-cli cluster-init --cluster-username=carlos --cluster-password=mowgli19 --cluster-ramsize=1024 --cluster-index-ramsize=128"]
         resources:
           requests:
             cpu: "0.5"
