@@ -8,10 +8,8 @@ spec:
   - name: couchbase-ctn
     image: couchbase:latest
     ports:
-      - name: admin
-        containerPort: 8091
-      - name: views
-        containerPort: 8092
+      - containerPort: 8091
+      - containerPort: 8092
     resources:
       requests:
         cpu: "0.5"
