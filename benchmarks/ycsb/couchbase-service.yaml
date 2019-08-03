@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: couchbase-service
+spec:
+  selector:
+    app: couchbase
+  ports:
+    - protocol: TCP
+      port: 8091
+      targetPort: 8091
+    - protocol: TCP
+      port: 8092
+      targetPort: 8092
+  type: NodePort
