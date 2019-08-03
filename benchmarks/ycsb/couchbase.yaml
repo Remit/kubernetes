@@ -13,10 +13,10 @@ spec:
       - name: views
         containerPort: 8092
     command: ["/bin/bash"]
-    args: ["-c", "/opt/couchbase/bin/couchbase-cli bucket-create -c localhost:8091 -u carlos -p mowgli19 --bucket=ycsb --enable-flush=1 --bucket-type=couchbase --bucket-ramsize=500 --bucket-priority=high --wait; \
+    args: ["-c", "/opt/couchbase/bin/couchbase-cli cluster-init -c localhost:8091 --cluster-username=carlos --cluster-password=mowgli19 --cluster-ramsize=1024 --cluster-index-ramsize=128 \
+    && /opt/couchbase/bin/couchbase-cli bucket-create -c localhost:8091 -u carlos -p mowgli19 --bucket=ycsb --enable-flush=1 --bucket-type=couchbase --bucket-ramsize=500 --bucket-priority=high --wait; \
     && /opt/couchbase/bin/couchbase-cli user-manage -c localhost --username carlos --password mowgli19 --set --rbac-username ycsb --rbac-password mowgli19 --rbac-name 'Ycsb' --roles bucket_full_access[ycsb] --auth-domain local \
-    && /opt/couchbase/bin/couchbase-cli setting-autofailover -c localhost:8091 -u carlos -p mowgli19 --enable-auto-failover=1 --auto-failover-timeout=30 \
-    && /opt/couchbase/bin/couchbase-cli cluster-init -c localhost:8091 --cluster-username=carlos --cluster-password=mowgli19 --cluster-ramsize=1024 --cluster-index-ramsize=128"]
+    && /opt/couchbase/bin/couchbase-cli setting-autofailover -c localhost:8091 -u carlos -p mowgli19 --enable-auto-failover=1 --auto-failover-timeout=30"]
     resources:
       requests:
         cpu: "0.5"
