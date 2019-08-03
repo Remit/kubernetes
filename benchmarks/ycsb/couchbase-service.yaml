@@ -9,9 +9,9 @@ spec:
     - name: admin
       protocol: TCP
       port: 8091
-      targetPort: 8091
+      nodePort: 8091
     - name: views
       protocol: TCP
       port: 8092
-      targetPort: 8092
+      nodePort: 8092
   type: NodePort
