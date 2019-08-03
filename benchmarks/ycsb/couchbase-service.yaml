@@ -6,10 +6,12 @@ spec:
   selector:
     app: couchbase
   ports:
-    - protocol: TCP
+    - name: admin
+      protocol: TCP
       port: 8091
       targetPort: 8091
-    - protocol: TCP
+    - name: views
+      protocol: TCP
       port: 8092
       targetPort: 8092
   type: NodePort
