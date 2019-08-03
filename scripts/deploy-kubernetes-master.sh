@@ -45,4 +45,6 @@ sudo echo "KUBELET_EXTRA_ARGS=--cpu-manager-policy=$(cpupolicy) --v=4 --kube-res
 
 sudo kubeadm init
 sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.8/manifests/calico.yaml
+# Here we enable some ports to be used when exposing pod ports via services for convenience
+sudo cat /etc/kubernetes/manifests/kube-apiserver.yaml | sed 's/- --secure-port=6443/- --secure-port=6443\n    - --service-node-port-range=100-30000/' | sudo tee /etc/kubernetes/manifests/kube-apiserver.yaml
 echo "Now you can use the output of the of kubeadm init of form kubeadm join... to join node to the cluster"
