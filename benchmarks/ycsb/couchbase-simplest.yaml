@@ -1,18 +1,35 @@
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: couchbase-server
-
+  name: couchbase-deployment
+  labels:
+    app: couchbase
 spec:
-  containers:
-  - name: couchbase-ctn
-    image: couchbase:latest
-    resources:
-      requests:
-        cpu: "0.5"
-        memory: "4Gi"
-      limits:
-        cpu: "0.5"
-        memory: "4Gi"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: couchbase
+  template:
+    metadata:
+      name: couchbase-server
+      labels:
+        app: couchbase
+
+    spec:
+      containers:
+      - name: couchbase-ctn
+        image: couchbase:latest
+        ports:
+          - name: admin
+            containerPort: 8091
+          - name: views
+            containerPort: 8092
+        resources:
+          requests:
+            cpu: "0.5"
+            memory: "4Gi"
+          limits:
+            cpu: "0.5"
+            memory: "4Gi"
 
 # sudo kubectl --kubeconfig /etc/kubernetes/admin.conf port-forward pods/couchbase-server 8091:8091
