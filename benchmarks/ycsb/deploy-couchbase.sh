@@ -7,6 +7,7 @@ sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/ycsb/co
 # To get port mappings
 sudo kubectl --kubeconfig /etc/kubernetes/admin.conf describe service couchbase-service
 
+echo "Waiting 1.5 minutes for Couchbase to become up before proceeding to user creations..."
 sleep 90
 
 # Couchbase Starting

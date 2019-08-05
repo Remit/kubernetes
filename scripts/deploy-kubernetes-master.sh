@@ -9,8 +9,8 @@
 # 4 - ephemeralstorage reserved for kube-system pods, e.g. 1Gi
 
 cpupolicy="static"
-kuberescpu="300m"
-kuberesmem="300Mi"
+kuberescpu="1"
+kuberesmem="2Gi"
 kubereseph="1Gi"
 
 if [ ! -z "$1" ]
@@ -43,8 +43,13 @@ sudo systemctl enable kubelet
 sudo mkdir -p /etc/sysconfig/kubelet
 sudo echo "KUBELET_EXTRA_ARGS=--cpu-manager-policy=$(cpupolicy) --v=4 --kube-reserved=cpu=$(kuberescpu),memory=$(kuberesmem),ephemeral-storage=$(kubereseph)" >> /etc/sysconfig/kubelet
 
+# To avoid troubles with Calico
+sudo rm -rf /var/lib/cni/
 sudo kubeadm init
 sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.8/manifests/calico.yaml
+# In case of issues with Calico - https://github.com/projectcalico/calico/issues/2699
 # Here we enable some ports to be used when exposing pod ports via services for convenience
-sudo cat /etc/kubernetes/manifests/kube-apiserver.yaml | sed 's/- --secure-port=6443/- --secure-port=6443\n    - --service-node-port-range=100-30000/' | sudo tee /etc/kubernetes/manifests/kube-apiserver.yaml
+sudo cat /etc/kubernetes/manifests/kube-apiserver.yaml | sed 's/- --secure-port=6443/- --secure-port=6443\n    - --service-node-port-range=8000-30000/' > kube-apiserver.yaml
+sudo cp kube-apiserver.yaml /etc/kubernetes/manifests/kube-apiserver.yaml
+rm -f kube-apiserver.yaml
 echo "Now you can use the output of the of kubeadm init of form kubeadm join... to join node to the cluster"
