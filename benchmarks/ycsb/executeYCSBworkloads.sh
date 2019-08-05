@@ -4,17 +4,24 @@
 
 # public ip/dns of the couchbase instance
 # the workload-api instance assumes that all required ports are accessible to connect to Couchbase by using the default ports: https://docs.couchbase.com/server/current/install/install-ports.html
-COUCHBASE_IP=1.2.3.4
+# IP of the Kubernetes worker node where CouchDB runs
+COUCHBASE_IP=138.246.233.2
 
-# the publicly acessible ip/dns of the workload-api instance 
-WORKLOAD_API_IP=1.2.3.4
+# the publicly acessible ip/dns of the workload-api instance
+WORKLOAD_API_IP=127.0.0.1
 
 
-# workload setting, recordsize is 5 KB, i.e. total recordsize is 100GB not including additional DBMS metadata 
+# workload setting, recordsize is 5 KB, i.e. total recordsize is 100GB not including additional DBMS metadata
 TOTAL_RECORD_COUNT=20000000
 
+# seconds to sleep between consecutive requests about the status (to check whether workload generation is done)
+SLEEP_FOR_WORKLOAD=60
 
+# location of identity file (key) to log into the worker node of Kubernetes to leave there the signaling file
+ID_FILE_SSH=~/testaccess.pem
 
+# User
+USER_NAME=ubuntu
 
 ################################ write-heavy workload ################################
 
@@ -28,11 +35,20 @@ curl -X POST "http://$WORKLOAD_API_IP:8181/v1/workload/ycsb?taskId=numa-write" -
 
 ################################ checking the workload execution state ################################
 
-#TODO: either check constanly via a script of manually 
+#check constanly status before proceeding to the next stage
+chars=0
 
-curl -X GET "http://$WORKLOAD_API_IP:8181/v1/workload/status?applicationInstanceId=numa-write" -H "accept: application/json"
+while [ $chars = 0 ]
+do
+	sleep $SLEEP_FOR_WORKLOAD
+	chars=$(curl --silent -X GET "http://127.0.0.1:8181/v1/workload/status?applicationInstanceId=numa-write" -H "accept: application/json" | grep \"processStatus\":\"IDLE\" | wc -l)
+done
 
-
+################################ Issuing a command on DB server to crate a signaling file + waiting ################################
+# Reference: https://www.cyberciti.biz/faq/unix-linux-execute-command-using-ssh/
+chmod 600 ${ID_FILE_SSH}
+ssh -i ${ID_FILE_SSH} -t ${USER_NAME}@${COUCHBASE_IP} -o StrictHostKeyChecking=no 'sudo touch /etc/signal'
+sleep 120
 
 ################################ read-heavy workload ################################
 
@@ -51,7 +67,7 @@ curl -X POST "http://$WORKLOAD_API_IP:8181/v1/workload/ycsb?taskId=numa-read" -H
 
 ################################ checking the workload execution state ################################
 
-#TODO: either check constanly via a script of manually 
+#TODO: either check constanly via a script of manually
 
 curl -X GET "http://$WORKLOAD_API_IP:8181/v1/workload/status?applicationInstanceId=numa-read" -H "accept: application/json"
 
@@ -60,8 +76,11 @@ curl -X GET "http://$WORKLOAD_API_IP:8181/v1/workload/status?applicationInstance
 ################################ getting the workload results ################################
 # results can be found diretly on fileystem of the workload-api under: /tmp/YCSB/numa-write.txt and /tmp/YCSB/numa-read.txt
 
-#in addition results can be get via the workload-api interface: 
+#in addition results can be get via the workload-api interface:
 
 curl -X GET "http://$WORKLOAD_API_IP:8181/v1/workload/result?taskId=numa-write&workloadType=YCSB" -H "accept: text/plain"
 
 curl -X GET "http://$WORKLOAD_API_IP:8181/v1/workload/result?taskId=numa-read&workloadType=YCSB" -H "accept: text/plain"
+
+# Cleaning
+ssh -i ${ID_FILE_SSH} -t ${USER_NAME}@${COUCHBASE_IP} -o StrictHostKeyChecking=no 'sudo rm -f /etc/signal'

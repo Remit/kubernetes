@@ -34,7 +34,7 @@ curl -X POST "http://$WORKLOAD_API_IP:8181/v1/workload/ycsb?taskId=numa-write" -
 
 ################################ checking the workload execution state ################################
 
-#TODO: check constanly status before proceeding to the next stage
+#check constanly status before proceeding to the next stage
 chars=0
 
 while [ $chars = 0 ]
@@ -79,3 +79,6 @@ curl -X GET "http://$WORKLOAD_API_IP:8181/v1/workload/status?applicationInstance
 curl -X GET "http://$WORKLOAD_API_IP:8181/v1/workload/result?taskId=numa-write&workloadType=YCSB" -H "accept: text/plain"
 
 curl -X GET "http://$WORKLOAD_API_IP:8181/v1/workload/result?taskId=numa-read&workloadType=YCSB" -H "accept: text/plain"
+
+# Cleaning
+ssh -i ${ID_FILE_SSH} -t ${USER_NAME}@${COUCHBASE_IP} -o StrictHostKeyChecking=no 'sudo rm -f /etc/signal'
