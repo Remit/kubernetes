@@ -10,7 +10,7 @@ if [ ! -z "$1" ]
     kubernetescode=$1
 fi
 
-cd $(kubernetescode)
+cd $kubernetescode
 git pull
 
 # The command below makes a dockerized build and copies compiled binaries
