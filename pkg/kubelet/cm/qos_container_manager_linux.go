@@ -241,6 +241,15 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 			}
 		}
 
+		// TEST BEGIN: test-specific functionality
+		antiNUMA := false
+		if val, ok := pod.Labels["testpolicy"]; ok {
+			if val == "antinuma" {
+				antiNUMA = true
+			}
+		}
+		// TEST END: test-specific functionality
+
 		// Following, we exclude service pods of Kubernetes from our adjustments
 		// by considering the namespace
 		if numaAware  && (podNamespace != "kube-system") {
@@ -447,6 +456,17 @@ func (m *qosContainerManagerImpl) setCPUSetsCgroupConfig(configs map[string]*Cgr
 
 									singleCPUcpuset := cpuset.NewCPUSet(cpuIDLastExecutedOn)
 									preferredNUMAnodeByProcID := m.topoNUMA.GetNUMANodeIDbyCPU(singleCPUcpuset)
+
+									// TEST BEGIN: test-specific functionality
+									if antiNUMA {
+										if preferredNUMAnodeByProcID == 0 {
+											preferredNUMAnodeByProcID = 1
+										} else {
+											preferredNUMAnodeByProcID = 0
+										}
+									}
+									// TEST END: test-specific functionality
+
 									klog.V(2).Infof("[Container Manager | Augmentation II] setCPUSetsCgroupConfig: for task %s of container %s of pod %s got CPU#%d where it last run, hence NUMA node #%d is appropriate", taskID, containerID, podUID, cpuIDLastExecutedOn, preferredNUMAnodeByProcID)
 
 									preferredNUMAnodesByContainer = append(preferredNUMAnodesByContainer, preferredNUMAnodeByProcID)

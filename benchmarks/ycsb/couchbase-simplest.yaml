@@ -14,6 +14,9 @@ spec:
       name: couchbase-server
       labels:
         app: couchbase
+        numapolicy: numaaware
+        # For tests suggested by Joerg: the below label should be absent in the first test, and present in the other one
+        testpolicy: antinuma
 
     spec:
       containers:
