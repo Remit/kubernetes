@@ -37,8 +37,8 @@ spec:
             containerPort: 50020
         resources:
           requests:
-            cpu: "0.5"
-            memory: "4Gi"
+            cpu: "1.5"
+            memory: "8Gi"
           limits:
-            cpu: "0.5"
-            memory: "4Gi"
+            cpu: "1.5"
+            memory: "8Gi"
