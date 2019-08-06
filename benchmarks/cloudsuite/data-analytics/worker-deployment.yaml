@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudsuite-data-analytics-deployment
+  labels:
+    app: cloudsuite-data-analytics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudsuite-data-analytics
+  template:
+    metadata:
+      name: slave01
+      hostname: slave01
+      labels:
+        app: cloudsuite-data-analytics
+        numapolicy: numaaware
+        # For baseline test only:
+        testpolicy: antinuma
+
+    spec:
+      containers:
+      - name: slave01
+        image: cloudsuite/hadoop:latest
+        # Reference for command arguments for entrypoint: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
+        args: ["slave"]
+        ports:
+          # Reference for Hadoop ports: https://ambari.apache.org/1.2.3/installing-hadoop-using-ambari/content/reference_chap2_1.html
+          - name: http
+            containerPort: 50075
+          - name: https
+            containerPort: 50475
+          - name: data
+            containerPort: 50010
+          - name: ipc
+            containerPort: 50020
+        resources:
+          requests:
+            cpu: "0.5"
+            memory: "4Gi"
+          limits:
+            cpu: "0.5"
+            memory: "4Gi"
