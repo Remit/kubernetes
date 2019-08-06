@@ -1,0 +1,10 @@
+apiVersion: projectcalico.org/v3
+kind: IPPool
+metadata:
+  name: hadoop-net
+spec:
+  cidr: 192.168.0.0/16
+  ipipMode: CrossSubnet
+  natOutgoing: true
+  disabled: false
+  nodeSelector: all()
