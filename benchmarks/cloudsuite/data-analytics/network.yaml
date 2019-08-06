@@ -1,34 +1,38 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: test-network-policy
+  name: cloudsuite-data-analytics-network-policy
   namespace: default
 spec:
   podSelector:
     matchLabels:
-      role: db
+      app: cloudsuite-data-analytics
   policyTypes:
   - Ingress
   - Egress
   ingress:
   - from:
     - ipBlock:
-        cidr: 172.17.0.0/16
-        except:
-        - 172.17.1.0/24
-    - namespaceSelector:
-        matchLabels:
-          project: myproject
-    - podSelector:
-        matchLabels:
-          role: frontend
+        cidr: 192.168.0.0/16
     ports:
     - protocol: TCP
-      port: 6379
+      port: 50075
+    - protocol: TCP
+      port: 50475
+    - protocol: TCP
+      port: 50010
+    - protocol: TCP
+      port: 50020
   egress:
   - to:
     - ipBlock:
-        cidr: 10.0.0.0/24
+        cidr: 192.168.0.0/16
     ports:
     - protocol: TCP
-      port: 5978
+      port: 50075
+    - protocol: TCP
+      port: 50475
+    - protocol: TCP
+      port: 50010
+    - protocol: TCP
+      port: 50020
