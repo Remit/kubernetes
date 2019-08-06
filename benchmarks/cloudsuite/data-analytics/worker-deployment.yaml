@@ -12,7 +12,6 @@ spec:
   template:
     metadata:
       name: slave01
-      hostname: slave01
       labels:
         app: cloudsuite-data-analytics
         numapolicy: numaaware
@@ -20,6 +19,7 @@ spec:
         testpolicy: antinuma
 
     spec:
+      hostname: slave01
       containers:
       - name: slave01
         image: cloudsuite/hadoop:latest
