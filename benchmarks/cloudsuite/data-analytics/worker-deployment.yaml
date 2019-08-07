@@ -29,7 +29,7 @@ spec:
 
       containers:
       - name: slave01
-        image: cloudsuite/hadoop:latest
+        image: zilutian/hadoop:latest
         # Reference for command arguments for entrypoint: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
         args: ["slave"]
         ports:

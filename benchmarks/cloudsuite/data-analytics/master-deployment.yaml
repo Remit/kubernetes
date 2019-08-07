@@ -25,7 +25,7 @@ spec:
         effect: "NoSchedule"
       containers:
       - name: master
-        image: cloudsuite/data-analytics:latest
+        image: zilutian/data-analytics:latest
         # Reference for command arguments for entrypoint: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
         args: ["master"]
         ports:
