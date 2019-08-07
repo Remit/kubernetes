@@ -1,47 +1,43 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cloudsuite-data-analytics-worker-deployment
+  name: cloudsuite-data-analytics-master-deployment
   labels:
-    app: cloudsuite-data-analytics-worker
+    app: cloudsuite-data-analytics-master
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: cloudsuite-data-analytics-worker
+      app: cloudsuite-data-analytics-master
   template:
     metadata:
-      name: slave01
+      name: master
       labels:
-        app: cloudsuite-data-analytics-worker
-        numapolicy: numaaware
-        # For baseline test only:
-        testpolicy: antinuma
+        app: cloudsuite-data-analytics-master
 
     spec:
-      hostname: slave01
+      hostname: master
       tolerations:
       - key: "allowed"
         operator: "Equal"
         # The value should be corrected for the real run. Also, one can use env variables.
         value: "k8instance"
         effect: "NoSchedule"
-        
       containers:
-      - name: slave01
-        image: cloudsuite/hadoop:latest
+      - name: master
+        image: cloudsuite/data-analytics:latest
         # Reference for command arguments for entrypoint: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
-        args: ["slave"]
+        args: ["master"]
         ports:
           # Reference for Hadoop ports: https://ambari.apache.org/1.2.3/installing-hadoop-using-ambari/content/reference_chap2_1.html
           - name: http
-            containerPort: 50075
+            containerPort: 50070
           - name: https
-            containerPort: 50475
-          - name: data
-            containerPort: 50010
-          - name: ipc
-            containerPort: 50020
+            containerPort: 50470
+          - name: ipc1
+            containerPort: 8020
+          - name: ipc2
+            containerPort: 9000
         resources:
           requests:
             cpu: "1.5"

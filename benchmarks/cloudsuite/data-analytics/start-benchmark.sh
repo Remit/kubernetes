@@ -1,3 +1,30 @@
+#!/bin/sh
+# Script that deploys data-analytics benchmark from EPFL CloudSuite and starts it
+# Should be run on Kubernetes master! Ensure correct host names.
+
+MASTER_NODE=k8instance
+WORKER_NODE=k8instance
+
+# Tainting nodes to ensure that master and worker run on distinct nodes
+# Note: for the sake of testing, they were assigned to be same. If they are the same,
+# we assume that everything runs on the same node -> the master node should be untainted
+if [ $MASTER_NODE = $WORKER_NODE ]; then
+  sudo kubectl --kubeconfig /etc/kubernetes/admin.conf taint nodes --all node-role.kubernetes.io/master-
+fi
+
+sudo kubectl --kubeconfig /etc/kubernetes/admin.conf taint nodes $MASTER_NODE allowed=$MASTER_NODE:NoSchedule
+sudo kubectl --kubeconfig /etc/kubernetes/admin.conf taint nodes $WORKER_NODE allowed=$WORKER_NODE:NoSchedule
+
+# Deploying master and worked in Kubernetes
+sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/cloudsuite/data-analytics/master-deployment.yaml
+sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/cloudsuite/data-analytics/worker-deployment.yaml
+
+# Deploying Kubernetes service to ensure external acces to the master in case it is needed
+sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/cloudsuite/data-analytics/master-service.yaml
+
+sleep 60
+# TODO: check if correct command
+docker exec master benchmark
 # https://docs.projectcalico.org/v3.8/getting-started/bare-metal/installation/container
 # Calico network for container? to connect to calico for pods?
 # https://kubernetes.io/docs/concepts/services-networking/network-policies/
