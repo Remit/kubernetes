@@ -14,5 +14,13 @@ spec:
       protocol: TCP
       port: 50470
       nodePort: 50470
+    - name: ipc1
+      protocol: TCP
+      port: 8020
+      nodePort: 8020
+    - name: ipc2
+      protocol: TCP
+      port: 9000
+      nodePort: 9000
 
   type: NodePort

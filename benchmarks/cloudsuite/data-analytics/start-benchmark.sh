@@ -12,8 +12,8 @@ if [ $MASTER_NODE = $WORKER_NODE ]; then
   sudo kubectl --kubeconfig /etc/kubernetes/admin.conf taint nodes --all node-role.kubernetes.io/master-
 fi
 
-sudo kubectl --kubeconfig /etc/kubernetes/admin.conf taint nodes $MASTER_NODE allowed=$MASTER_NODE:NoSchedule
-sudo kubectl --kubeconfig /etc/kubernetes/admin.conf taint nodes $WORKER_NODE allowed=$WORKER_NODE:NoSchedule
+sudo kubectl --kubeconfig /etc/kubernetes/admin.conf taint nodes $MASTER_NODE allowed=$MASTER_NODE:NoSchedule --overwrite
+sudo kubectl --kubeconfig /etc/kubernetes/admin.conf taint nodes $WORKER_NODE allowed=$WORKER_NODE:NoSchedule --overwrite
 
 # Deploying master and worked in Kubernetes
 sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/cloudsuite/data-analytics/master-deployment.yaml
@@ -23,8 +23,18 @@ sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/cloudsu
 sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/cloudsuite/data-analytics/master-service.yaml
 
 sleep 60
-# TODO: check if correct command master_cloudsuite-data-analytics-master-deployment
-docker exec master benchmark
+MASTER_CONTAINER_ID=$(docker ps | grep master_cloudsuite-data-analytics-master-deployment | cut -d' ' -f 1)
+
+docker exec $MASTER_CONTAINER_ID benchmark
+
+# https://www.tutorialspoint.com/hadoop/hadoop_multi_node_cluster
+# change /etc/hosts?
+# change .../slaves? /masters?
+#https://cloudnativelabs.github.io/post/2017-04-18-kubernetes-networking/
+# To enter the container:
+# docker exec -it $MASTER_CONTAINER_ID bin/bash
+
+
 # https://docs.projectcalico.org/v3.8/getting-started/bare-metal/installation/container
 # Calico network for container? to connect to calico for pods?
 # https://kubernetes.io/docs/concepts/services-networking/network-policies/
