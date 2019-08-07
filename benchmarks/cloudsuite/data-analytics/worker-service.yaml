@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: cloudsuite-data-analytics-worker-service
+  name: slave01
 spec:
   selector:
     app: cloudsuite-data-analytics-worker
@@ -9,18 +9,16 @@ spec:
     - name: http
       protocol: TCP
       port: 50075
-      nodePort: 50075
+      targetPort: 50075
     - name: https
       protocol: TCP
       port: 50475
-      nodePort: 50475
+      targetPort: 50475
     - name: data
       protocol: TCP
       port: 50010
-      nodePort: 50010
+      targetPort: 50010
     - name: ipc
       protocol: TCP
       port: 50020
-      nodePort: 50020
-
-  type: NodePort
+      targetPort: 50020

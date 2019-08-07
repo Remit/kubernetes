@@ -26,6 +26,7 @@ sleep 60
 MASTER_CONTAINER_ID=$(docker ps | grep master_cloudsuite-data-analytics-master-deployment | cut -d' ' -f 1)
 
 docker exec $MASTER_CONTAINER_ID benchmark
+# Give a try to https://blog.hasura.io/getting-started-with-hdfs-on-kubernetes-a75325d4178c/ and report back to EPFL
 
 # https://www.tutorialspoint.com/hadoop/hadoop_multi_node_cluster
 # change /etc/hosts?
