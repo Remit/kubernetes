@@ -19,7 +19,7 @@ sudo kubectl --kubeconfig /etc/kubernetes/admin.conf taint nodes $WORKER_NODE al
 sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/cloudsuite/data-analytics/master-deployment.yaml
 sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/cloudsuite/data-analytics/worker-deployment.yaml
 
-# Deploying Kubernetes service to ensure external acces to the master in case it is needed
+# Deploying Kubernetes service to ensure external acces to the master in case it is needed (<name>.default.svc.cluster.local)
 sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/cloudsuite/data-analytics/master-service.yaml
 
 sleep 60

@@ -34,7 +34,7 @@ spec:
         args: ["slave"]
         env:
         - name: CORE_CONF_fs_defaultFS
-          value: hdfs://master:8020
+          value: hdfs://master.default.svc.cluster.local:8020
         ports:
           # Reference for Hadoop ports: https://ambari.apache.org/1.2.3/installing-hadoop-using-ambari/content/reference_chap2_1.html
           - name: http
