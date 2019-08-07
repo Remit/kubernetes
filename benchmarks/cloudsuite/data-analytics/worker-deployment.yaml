@@ -26,7 +26,7 @@ spec:
         # The value should be corrected for the real run. Also, one can use env variables.
         value: "k8instance"
         effect: "NoSchedule"
-        
+
       containers:
       - name: slave01
         image: cloudsuite/hadoop:latest
@@ -44,8 +44,8 @@ spec:
             containerPort: 50020
         resources:
           requests:
-            cpu: "1.5"
+            cpu: "1.0"
             memory: "4Gi"
           limits:
-            cpu: "1.5"
+            cpu: "1.0"
             memory: "4Gi"

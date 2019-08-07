@@ -23,7 +23,7 @@ sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/cloudsu
 sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/cloudsuite/data-analytics/master-service.yaml
 
 sleep 60
-# TODO: check if correct command
+# TODO: check if correct command master_cloudsuite-data-analytics-master-deployment
 docker exec master benchmark
 # https://docs.projectcalico.org/v3.8/getting-started/bare-metal/installation/container
 # Calico network for container? to connect to calico for pods?
