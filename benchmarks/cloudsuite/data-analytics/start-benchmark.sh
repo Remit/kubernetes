@@ -22,11 +22,15 @@ sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/cloudsu
 
 # Deploying Kubernetes service to ensure external acces to the master in case it is needed (<name>.default.svc.cluster.local)
 sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/cloudsuite/data-analytics/master-service.yaml
+sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/cloudsuite/data-analytics/worker-service.yaml
 
 sleep 60
 MASTER_CONTAINER_ID=$(docker ps | grep master_cloudsuite-data-analytics-master-deployment | cut -d' ' -f 1)
+WORKER_CONTAINER_ID=$(docker ps | grep slave01_cloudsuite-data-analytics-worker-deployment | cut -d' ' -f 1)
 
 docker exec $MASTER_CONTAINER_ID benchmark
+# docker cp $MASTER_CONTAINER_ID:/opt/hadoop-2.9.1/logs ~/master_log
+# docker cp $WORKER_CONTAINER_ID:/opt/hadoop-2.9.1/logs ~/slave_log
 # Give a try to https://blog.hasura.io/getting-started-with-hdfs-on-kubernetes-a75325d4178c/ and report back to EPFL
 
 # https://www.tutorialspoint.com/hadoop/hadoop_multi_node_cluster

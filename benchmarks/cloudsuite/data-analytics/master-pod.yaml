@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: master
+  labels:
+    app: cloudsuite-data-analytics-master
+
+spec:
+  hostname: master
+  # TODO: uncomment for clusters with more than one node
+  #tolerations:
+  #- key: "allowed"
+  #  operator: "Equal"
+    # The value should be corrected for the real run. Also, one can use env variables.
+  #  value: "k8instance"
+  #  effect: "NoSchedule"
+  containers:
+  - name: master
+    image: zilutian/data-analytics:latest
+    # Reference for command arguments for entrypoint: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
+    args: ["master"]
+    ports:
+      # Reference for Hadoop ports: https://ambari.apache.org/1.2.3/installing-hadoop-using-ambari/content/reference_chap2_1.html
+      - name: http
+        containerPort: 50070
+      - name: https
+        containerPort: 50470
+      - name: ipc1
+        containerPort: 8020
+      - name: ipc2
+        containerPort: 9000
+    resources:
+      requests:
+        cpu: "0.5"
+        memory: "4Gi"
+      limits:
+        cpu: "0.5"
+        memory: "4Gi"

@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: slave01
+  labels:
+    app: cloudsuite-data-analytics-worker
+    numapolicy: numaaware
+    # For baseline test only:
+    testpolicy: antinuma
+
+spec:
+  hostname: slave01
+  # TODO: uncomment for clusters with more than one node
+  #tolerations:
+  #- key: "allowed"
+  #  operator: "Equal"
+    # The value should be corrected for the real run. Also, one can use env variables.
+  #  value: "k8instance"
+  #  effect: "NoSchedule"
+
+  containers:
+  - name: slave01
+    image: zilutian/hadoop:latest
+    # Reference for command arguments for entrypoint: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
+    args: ["slave"]
+    env:
+    - name: CORE_CONF_fs_defaultFS
+      value: hdfs://master.default.svc.cluster.local:8020
+    ports:
+      # Reference for Hadoop ports: https://ambari.apache.org/1.2.3/installing-hadoop-using-ambari/content/reference_chap2_1.html
+      - name: http
+        containerPort: 50075
+      - name: https
+        containerPort: 50475
+      - name: data
+        containerPort: 50010
+      - name: ipc
+        containerPort: 50020
+    resources:
+      requests:
+        cpu: "1.0"
+        memory: "4Gi"
+      limits:
+        cpu: "1.0"
+        memory: "4Gi"
