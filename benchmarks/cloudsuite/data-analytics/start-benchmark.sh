@@ -12,8 +12,9 @@ if [ $MASTER_NODE = $WORKER_NODE ]; then
   sudo kubectl --kubeconfig /etc/kubernetes/admin.conf taint nodes --all node-role.kubernetes.io/master-
 fi
 
-sudo kubectl --kubeconfig /etc/kubernetes/admin.conf taint nodes $MASTER_NODE allowed=$MASTER_NODE:NoSchedule --overwrite
-sudo kubectl --kubeconfig /etc/kubernetes/admin.conf taint nodes $WORKER_NODE allowed=$WORKER_NODE:NoSchedule --overwrite
+# TODO: uncomment for clusters with more than one node
+# sudo kubectl --kubeconfig /etc/kubernetes/admin.conf taint nodes $MASTER_NODE allowed=$MASTER_NODE:NoSchedule --overwrite
+# sudo kubectl --kubeconfig /etc/kubernetes/admin.conf taint nodes $WORKER_NODE allowed=$WORKER_NODE:NoSchedule --overwrite
 
 # Deploying master and worked in Kubernetes
 sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f benchmarks/cloudsuite/data-analytics/master-deployment.yaml

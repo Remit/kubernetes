@@ -17,12 +17,13 @@ spec:
 
     spec:
       hostname: master
-      tolerations:
-      - key: "allowed"
-        operator: "Equal"
+      # TODO: uncomment for clusters with more than one node
+      #tolerations:
+      #- key: "allowed"
+      #  operator: "Equal"
         # The value should be corrected for the real run. Also, one can use env variables.
-        value: "k8instance"
-        effect: "NoSchedule"
+      #  value: "k8instance"
+      #  effect: "NoSchedule"
       containers:
       - name: master
         image: zilutian/data-analytics:latest
