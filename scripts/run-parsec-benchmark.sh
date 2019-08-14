@@ -78,9 +78,8 @@ do
       # Terminating the pod
       sudo kubectl --kubeconfig /etc/kubernetes/admin.conf delete pod ${podname} --force --grace-period=0
 
-      i=$(( i + 1 ))
-
       echo "[$(date)] benchmarking with ${podconfig}: finishing run ${i} of pod ${podname}, the results are stored in file ${testrunres}"
+      i=$(( i + 1 ))
     done
 done
 
