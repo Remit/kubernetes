@@ -592,6 +592,8 @@ function kube::build::run_build_command_ex() {
   # Clean up container from any previous run
   kube::build::destroy_container "${container_name}"
   "${docker_cmd[@]}" "${cmd[@]}"
+  echo "${docker_cmd[@]}" "${cmd[@]}"
+  exit
   if [[ "${detach}" == false ]]; then
     kube::build::destroy_container "${container_name}"
   fi
