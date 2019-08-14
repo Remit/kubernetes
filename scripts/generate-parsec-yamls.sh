@@ -32,13 +32,13 @@ if [ $(ls /usr/bin/ | grep Rscript) = "Rscript" ]; then
   --templatefile=${kubernetescode}/scripts/template.yaml \
   --yamldir=${kubernetescode}/benchmarks/parsec \
   --programs=blackscholes,bodytrack,canneal,dedup,facesim,ferret,fluidanimate,freqmine,raytrace,streamcluster,swaptions,vips,x264 \
-  --sizes=simmedium \
+  --sizes=simsmall,simmedium,simlarge,native \
   --qos=$qosclasses \
   --labels=separate,numaaware,stackposaware \
-  --gu.requests=0.5,4Gi \
-  --gu.limits=0.5,4Gi \
-  --bu.requests=0.5,4Gi \
-  --bu.limits=1,8Gi
+  --gu.requests=4,16Gi \
+  --gu.limits=4,16Gi \
+  --bu.requests=4,16Gi \
+  --bu.limits=8,32Gi
 else
   echo "R is not installed. Rscript should be in /usr/bin."
 fi
