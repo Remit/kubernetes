@@ -23,4 +23,4 @@ IV. Recurring for each cluster deployment:
 
 V. Benchmarking on the running cluster:
 !WORK-IN-PROGRESS!
-[MASTER] `sudo ./run-parsec-benchmark.sh kubernetesaugment/kubernetes-cpupinning/kubernetes`
+[MASTER] `sudo ./run-parsec-benchmark.sh ~/kubernetes/ 2`

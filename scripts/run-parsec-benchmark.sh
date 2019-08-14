@@ -84,5 +84,5 @@ do
 done
 
 docker system prune -a -f
-sudo Rscript --benchmarkpath=${kubernetescode}/benchmarks/parsec --analysispath=${kubernetescode}/benchmarks/parsec/analysis
+sudo Rscript ${kubernetescode}/scripts/ParsecLogsAnalysis.R --benchmarkpath=${kubernetescode}/benchmarks/parsec --analysispath=${kubernetescode}/benchmarks/parsec/analysis
 echo "[$(date)] parsec benchmarking completed!"

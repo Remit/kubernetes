@@ -6,7 +6,7 @@
 # analysispath <- "D:/@TUM/UCC-2019/code/kubernetes/benchmarks/parsec/tst"
 
 benchmarkpath.prefix <- "--benchmarkpath="
-analysispath.prefix <- "--resultspath="
+analysispath.prefix <- "--analysispath="
 
 options(warn=-1)
 
@@ -45,9 +45,9 @@ if((length(benchmarkpath) == 0) || (length(analysispath) == 0)) {
     benchmark.program <- trimws(strsplit(log.content[grepl("Benchmarks to run:", log.content)], ":")[[1]][2])
     benchmark.input <- trimws(strsplit(log.content[grepl("Unpacking benchmark input", log.content)], "'")[[1]][2])
     
-    optionsnum <- as.numeric(trimws(strsplit(log.content[grepl("Num of Options", log.content)], ":")[[1]][2]))
-    runsnum <- as.numeric(trimws(strsplit(log.content[grepl("Num of Runs", log.content)], ":")[[1]][2]))
-    datasize <- as.numeric(trimws(strsplit(log.content[grepl("Size of data", log.content)], ":")[[1]][2]))
+    #optionsnum <- as.numeric(trimws(strsplit(log.content[grepl("Num of Options", log.content)], ":")[[1]][2]))
+    #runsnum <- as.numeric(trimws(strsplit(log.content[grepl("Num of Runs", log.content)], ":")[[1]][2]))
+    #datasize <- as.numeric(trimws(strsplit(log.content[grepl("Size of data", log.content)], ":")[[1]][2]))
     
     timereal.str <- log.content[grepl("real\t", log.content)]
     timeuser.str <- log.content[grepl("user\t", log.content)]
@@ -61,9 +61,9 @@ if((length(benchmarkpath) == 0) || (length(analysispath) == 0)) {
                benchmark.program = benchmark.program,
                benchmark.input = benchmark.input,
                testrunid = testrunid,
-               optionsnum = optionsnum,
-               runsnum = runsnum,
-               datasize = datasize,
+               #optionsnum = optionsnum,
+               #runsnum = runsnum,
+               #datasize = datasize,
                timereal = timereal,
                timeuser = timeuser,
                timesys = timesys)
