@@ -11,7 +11,7 @@
 # The generation settings should be set below in call to Rscript
 
 kubernetescode='.'
-qosclasses=separate,numaaware,stackposaware
+qosclasses=besteffort,burstable,guaranteed
 
 if [ ! -z "$1" ]
   then
