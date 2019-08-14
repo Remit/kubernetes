@@ -12,7 +12,7 @@
 
 kubernetescode='.'
 
-if [ ! -z "$1" ]
+if [[ ! -z "$1" ]]
   then
     kubernetescode=$1
 fi

@@ -191,6 +191,31 @@ if((length(templatefile) == 0) || (length(yamldir) == 0)) {
   
   options.grid <- expand.grid(options)
   
+  # Filtering out unsupported combinations
+  # -	Modify generation of yamls: socketpolicy separate only for QoS Guaranteed;
+  # cache-aware only if numa-aware is enabled; cache-aware only for Burstable and BestEffort
+  is.correct.option <- function(option) {
+    qos <- option["qos"]
+    separate.socket.pol <- option["separate.socket.pol"]
+    numaaware.numa.pol <- option["numaaware.numa.pol"]
+    stackposaware.stack.pol <- option["stackposaware.stack.pol"]
+    
+    is.correct <- TRUE
+    
+    if(separate.socket.pol && (qos != "guaranteed")) {
+      is.correct <- FALSE
+    } else if(stackposaware.stack.pol && !numaaware.numa.pol) {
+      is.correct <- FALSE
+    } else if(stackposaware.stack.pol && (qos == "guaranteed")) {
+      is.correct <- FALSE
+    }
+    
+    is.correct
+  }
+  
+  selector.correct.options <- apply(options.grid, 1, is.correct.option)
+  options.grid.filtered <- options.grid[selector.correct.options,]
+  
   require(readr)
   template <- read_file(templatefile)
   
@@ -258,5 +283,5 @@ if((length(templatefile) == 0) || (length(yamldir) == 0)) {
     write_file(template.filled, paste0(yamldir, "/", yamlname))
   }
   
-  eee <- apply(options.grid, 1, generate.yaml, template, yamldir, bu.res, gu.res)  
+  eee <- apply(options.grid.filtered, 1, generate.yaml, template, yamldir, bu.res, gu.res)  
 }
