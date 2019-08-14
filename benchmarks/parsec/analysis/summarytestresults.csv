@@ -1,0 +1,12 @@
+"suite","benchmark.program","benchmark.input","qos.class","separate.socket.pol","numaaware.numa.pol","stackposaware.stack.pol","meantime","sdtime"
+"parsec","parsec.blackscholes","simmedium","BestEffort",FALSE,FALSE,FALSE,0.401,0.0014142135623731
+"parsec","parsec.blackscholes","simmedium","BestEffort",FALSE,TRUE,FALSE,0.402,0
+"parsec","parsec.blackscholes","simmedium","BestEffort",FALSE,TRUE,TRUE,0.399,0.00282842712474619
+"parsec","parsec.blackscholes","simmedium","Burstable",FALSE,FALSE,FALSE,0.4195,0.00353553390593274
+"parsec","parsec.blackscholes","simmedium","Burstable",FALSE,TRUE,FALSE,0.4695,0.0629325035256027
+"parsec","parsec.blackscholes","simmedium","Burstable",FALSE,TRUE,TRUE,0.4185,0.00494974746830584
+"parsec","parsec.bodytrack","simmedium","BestEffort",FALSE,FALSE,FALSE,0.919,0.00424264068711929
+"parsec","parsec.bodytrack","simmedium","BestEffort",FALSE,TRUE,FALSE,0.9275,0.0106066017177982
+"parsec","parsec.bodytrack","simmedium","BestEffort",FALSE,TRUE,TRUE,0.913,0.00848528137423858
+"parsec","parsec.bodytrack","simmedium","Burstable",FALSE,FALSE,FALSE,0.954,0.0014142135623731
+"parsec","parsec.bodytrack","simmedium","Burstable",FALSE,TRUE,FALSE,1.0095,0.0502045814642448
