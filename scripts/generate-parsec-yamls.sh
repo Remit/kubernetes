@@ -11,10 +11,16 @@
 # The generation settings should be set below in call to Rscript
 
 kubernetescode='.'
+qosclasses=separate,numaaware,stackposaware
 
 if [ ! -z "$1" ]
   then
     kubernetescode=$1
+fi
+
+if [ ! -z "$2" ]
+  then
+    qosclasses=$2
 fi
 
 if [ ! -d $kubernetescode/benchmarks/parsec ]; then
@@ -27,7 +33,7 @@ if [ $(ls /usr/bin/ | grep Rscript) = "Rscript" ]; then
   --yamldir=${kubernetescode}/benchmarks/parsec \
   --programs=blackscholes,bodytrack,canneal,dedup,facesim,ferret,fluidanimate,freqmine,raytrace,streamcluster,swaptions,vips,x264 \
   --sizes=simmedium \
-  --qos=besteffort,burstable,guaranteed \
+  --qos=$qosclasses \
   --labels=separate,numaaware,stackposaware \
   --gu.requests=0.5,4Gi \
   --gu.limits=0.5,4Gi \
