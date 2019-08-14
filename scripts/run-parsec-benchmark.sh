@@ -63,7 +63,7 @@ do
       benchdone=false
       while ! ${benchdone}
       do
-        sleep 60 ;
+        sleep 10 ;
 
         status=$(sudo kubectl --kubeconfig /etc/kubernetes/admin.conf describe pod ${podname} | grep Status | sed -n '1 p' | cut -d":" -f 2 | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
