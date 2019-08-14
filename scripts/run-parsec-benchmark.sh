@@ -73,7 +73,7 @@ do
       done
 
       # Redirecting the results to the log file
-      sudo kubectl --kubeconfig /etc/kubernetes/admin.conf logs ${podname} > ${testrunres}
+      sudo kubectl --kubeconfig /etc/kubernetes/admin.conf logs ${podname} | sudo tee ${testrunres} > /dev/null
 
       # Terminating the pod
       sudo kubectl --kubeconfig /etc/kubernetes/admin.conf delete pod ${podname} --force --grace-period=0

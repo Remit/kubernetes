@@ -47,7 +47,7 @@ hostname=$(cat /etc/hostname)
 sudo systemctl enable kubelet
 sudo mkdir -p /etc/sysconfig/
 sudo touch /etc/sysconfig/kubelet
-sudo echo "KUBELET_EXTRA_ARGS=--cpu-manager-policy=$cpupolicy --v=4 --kube-reserved=cpu=$kuberescpu,memory=$kuberesmem,ephemeral-storage=$kubereseph" | sudo tee /etc/sysconfig/kubelet
+sudo echo "KUBELET_EXTRA_ARGS=--cpu-manager-policy=$cpupolicy --v=4 --kube-reserved=cpu=$kuberescpu,memory=$kuberesmem,ephemeral-storage=$kubereseph" | sudo tee /etc/sysconfig/kubelet > /dev/null
 
 # To avoid troubles with Calico
 sudo rm -rf /var/lib/cni/
