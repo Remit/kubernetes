@@ -22,31 +22,27 @@ if [ -z "$1" ]
     initaddress=$1
 fi
 
-if [[ ! -z "$2" ]]
+if [ ! -z "$2" ]
   then
     cpupolicy=$2
 fi
 
-if [[ ! -z "$3" ]]
+if [ ! -z "$3" ]
   then
     kuberescpu=$3
 fi
 
-if [[ ! -z "$4" ]]
+if [ ! -z "$4" ]
   then
     kuberesmem=$4
 fi
 
-if [[ ! -z "$5" ]]
+if [ ! -z "$5" ]
   then
     kubereseph=$5
 fi
 
 hostname=$(cat /etc/hostname)
-
-if [ hostname != "sparkone" ]; then
-  echo "WARNING: you are starting master node not on SPARKONE machine! In order to isolate performance, it is recommended to deploy master and worker nodes on separate machines"
-fi
 
 sudo systemctl enable kubelet
 sudo mkdir -p /etc/sysconfig/
