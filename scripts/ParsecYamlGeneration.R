@@ -196,9 +196,9 @@ if((length(templatefile) == 0) || (length(yamldir) == 0)) {
   # cache-aware only if numa-aware is enabled; cache-aware only for Burstable and BestEffort
   is.correct.option <- function(option) {
     qos <- option["qos"]
-    separate.socket.pol <- option["separate.socket.pol"]
-    numaaware.numa.pol <- option["numaaware.numa.pol"]
-    stackposaware.stack.pol <- option["stackposaware.stack.pol"]
+    separate.socket.pol <- as.logical(trimws(option["separate.socket.pol"]))
+    numaaware.numa.pol <- as.logical(trimws(option["numaaware.numa.pol"]))
+    stackposaware.stack.pol <- as.logical(trimws(option["stackposaware.stack.pol"]))
     
     is.correct <- TRUE
     
