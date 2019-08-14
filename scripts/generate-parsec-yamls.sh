@@ -18,7 +18,7 @@ if [ ! -z "$1" ]
 fi
 
 if [ ! -d $kubernetescode/benchmarks/parsec ]; then
-  sudo mkdir /benchmarks/parsec
+  sudo mkdir $kubernetescode/benchmarks/parsec
 fi
 
 if [ $(ls /usr/bin/ | grep Rscript) = "Rscript" ]; then
