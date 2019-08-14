@@ -5,19 +5,19 @@
 # 2 - generated token
 # 3 - cert hash
 
-if [ ! -z "$1" ]
+if [[ ! -z "$1" ]]
   then
     echo "Address of master node is not specified"
     exit 1
 fi
 
-if [ ! -z "$2" ]
+if [[ ! -z "$2" ]]
   then
     echo "Generated token not specified"
     exit 1
 fi
 
-if [ ! -z "$3" ]
+if [[ ! -z "$3" ]]
   then
     echo "CA certificate hash not specified"
     exit 1

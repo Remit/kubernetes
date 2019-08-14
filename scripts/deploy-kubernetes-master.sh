@@ -8,29 +8,38 @@
 # 3 - memory shares reserved for kube-system pods, e.g. 300Mi
 # 4 - ephemeralstorage reserved for kube-system pods, e.g. 1Gi
 
+initaddress="."
 cpupolicy="static"
 kuberescpu="1"
 kuberesmem="2Gi"
 kubereseph="1Gi"
 
-if [ ! -z "$1" ]
+if [ -z "$1" ]
   then
-    cpupolicy=$1
+    echo "Advertised address/CIDR not specified, e.g. 192.168.10.60"
+    exit 1
+  else
+    initaddress=$1
 fi
 
-if [ ! -z "$2" ]
+if [[ ! -z "$2" ]]
   then
-    kuberescpu=$2
+    cpupolicy=$2
 fi
 
-if [ ! -z "$3" ]
+if [[ ! -z "$3" ]]
   then
-    kuberesmem=$3
+    kuberescpu=$3
 fi
 
-if [ ! -z "$4" ]
+if [[ ! -z "$4" ]]
   then
-    kubereseph=$4
+    kuberesmem=$4
+fi
+
+if [[ ! -z "$5" ]]
+  then
+    kubereseph=$5
 fi
 
 hostname=$(cat /etc/hostname)
@@ -41,11 +50,11 @@ fi
 
 sudo systemctl enable kubelet
 sudo mkdir -p /etc/sysconfig/kubelet
-sudo echo "KUBELET_EXTRA_ARGS=--cpu-manager-policy=$(cpupolicy) --v=4 --kube-reserved=cpu=$(kuberescpu),memory=$(kuberesmem),ephemeral-storage=$(kubereseph)" >> /etc/sysconfig/kubelet
+sudo echo "KUBELET_EXTRA_ARGS=--cpu-manager-policy=$cpupolicy --v=4 --kube-reserved=cpu=$kuberescpu,memory=$kuberesmem,ephemeral-storage=$kubereseph" >> /etc/sysconfig/kubelet
 
 # To avoid troubles with Calico
 sudo rm -rf /var/lib/cni/
-sudo kubeadm init
+sudo kubeadm init --apiserver-advertise-address $initaddress --pod-network-cidr $initaddress/24
 sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.8/manifests/calico.yaml
 # In case of issues with Calico - https://github.com/projectcalico/calico/issues/2699
 # Here we enable some ports to be used when exposing pod ports via services for convenience
