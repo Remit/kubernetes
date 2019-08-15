@@ -1,0 +1,31 @@
+Decompressing input simlarge for parsec.dedup...
+Launching parsec.dedup...
+[PARSEC] Benchmarks to run:  parsec.dedup
+
+[PARSEC] [========== Running benchmark parsec.dedup [1] ==========]
+[PARSEC] Setting up run directory.
+[PARSEC] Unpacking benchmark input 'simlarge'.
+media.dat
+[PARSEC] Running 'time /home/parsec-3.0/pkgs/kernels/dedup/inst/amd64-linux.gcc/bin/dedup -c -p -v -t 1 -i media.dat -o output.dat.ddp':
+[PARSEC] [---------- Beginning of output ----------]
+PARSEC Benchmark Suite Version 3.0-beta-20150206
+Total input size:                      184.08 MB
+Total output size:                      78.50 MB
+Effective compression factor:            2.35x
+
+Mean data chunk size:                    2.02 KB (stddev: 1053.73 KB)
+Amount of duplicate chunks:             50.84%
+Data size after deduplication:         182.41 MB (compression factor: 1.01x)
+Data size after compression:            76.77 MB (compression factor: 2.38x)
+Output overhead:                         2.19%
+
+real	0m9.687s
+user	0m9.562s
+sys	0m3.040s
+[PARSEC] [----------    End of output    ----------]
+[PARSEC]
+[PARSEC] BIBLIOGRAPHY
+[PARSEC]
+[PARSEC] [1] Bienia. Benchmarking Modern Multiprocessors. Ph.D. Thesis, 2011.
+[PARSEC]
+[PARSEC] Done.

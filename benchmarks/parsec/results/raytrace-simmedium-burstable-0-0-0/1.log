@@ -1,0 +1,51 @@
+Decompressing input simmedium for parsec.raytrace...
+Launching parsec.raytrace...
+[PARSEC] Benchmarks to run:  parsec.raytrace
+
+[PARSEC] [========== Running benchmark parsec.raytrace [1] ==========]
+[PARSEC] Setting up run directory.
+[PARSEC] Unpacking benchmark input 'simmedium'.
+happy_buddha.obj
+[PARSEC] Running 'time /home/parsec-3.0/pkgs/apps/raytrace/inst/amd64-linux.gcc/bin/rtview happy_buddha.obj -automove -nthreads 1 -frames 3 -res 960 540':
+[PARSEC] [---------- Beginning of output ----------]
+this =0xb419c0
+PARSEC Benchmark Suite Version 3.0-beta-20150206
+initializing LRT ray tracer ...
+default BVH builder : binnedalldimssavespace
+
+
+Options:  automove = ;
+    files = happy_buddha.obj;
+   frames = 3;
+ nthreads = 1;
+      res = [960, 540];
+
+Using memory framebuffer...
+Adding obj file: happy_buddha.obj
+Using auto camera...
+num nodes in scene graph 1
+adding 543522 vertices
+adding 1087425 triangles
+finalizing geometry
+vertices            543522 (6369.4 KB)
+triangles           1087425 (12743.3 KB)
+texture coordinates 0 (0 KB)
+No materials -> create dummy material
+building index
+using BVH builder default
+build time 1.32766
+done
+sceneAABB =[[[-0.04615,0.049738,-0.047301,0] ],[[0.035226,0.24777,0.034077,0] ]]
+Rendering 3 frames... 
+Done
+
+real	0m5.301s
+user	0m5.205s
+sys	0m0.096s
+[PARSEC] [----------    End of output    ----------]
+[PARSEC]
+[PARSEC] BIBLIOGRAPHY
+[PARSEC]
+[PARSEC] [1] Bienia. Benchmarking Modern Multiprocessors. Ph.D. Thesis, 2011.
+[PARSEC]
+[PARSEC] Done.

@@ -1,0 +1,25 @@
+Decompressing input simlarge for parsec.x264...
+Launching parsec.x264...
+[PARSEC] Benchmarks to run:  parsec.x264
+
+[PARSEC] [========== Running benchmark parsec.x264 [1] ==========]
+[PARSEC] Setting up run directory.
+[PARSEC] Unpacking benchmark input 'simlarge'.
+eledream_640x360_128.y4m
+[PARSEC] Running 'time /home/parsec-3.0/pkgs/apps/x264/inst/amd64-linux.gcc/bin/x264 --quiet --qp 20 --partitions b8x8,i4x4 --ref 5 --direct auto --b-pyramid --weightb --mixed-refs --no-fast-pskip --me umh --subme 7 --analyse b8x8,i4x4 --threads 1 -o eledream.264 eledream_640x360_128.y4m':
+[PARSEC] [---------- Beginning of output ----------]
+PARSEC Benchmark Suite Version 3.0-beta-20150206
+yuv4mpeg: 640x360@25/1fps, 0:0
+*** Error in `/home/parsec-3.0/pkgs/apps/x264/inst/amd64-linux.gcc/bin/x264': double free or corruption (!prev): 0x0000000000f80c00 ***
+bin/parsecmgmt: line 1222:   338 Aborted                 (core dumped) /home/parsec-3.0/pkgs/apps/x264/inst/amd64-linux.gcc/bin/x264 --quiet --qp 20 --partitions b8x8,i4x4 --ref 5 --direct auto --b-pyramid --weightb --mixed-refs --no-fast-pskip --me umh --subme 7 --analyse b8x8,i4x4 --threads 1 -o eledream.264 eledream_640x360_128.y4m
+
+real	0m3.282s
+user	0m3.246s
+sys	0m0.036s
+[PARSEC] [----------    End of output    ----------]
+[PARSEC]
+[PARSEC] BIBLIOGRAPHY
+[PARSEC]
+[PARSEC] [1] Bienia. Benchmarking Modern Multiprocessors. Ph.D. Thesis, 2011.
+[PARSEC]
+[PARSEC] Done.
