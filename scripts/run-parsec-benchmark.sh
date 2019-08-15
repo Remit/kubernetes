@@ -10,6 +10,7 @@
 
 kubernetescode='.'
 nruns=10
+abruptend=1
 
 if [ ! -z "$1" ]
   then
@@ -19,6 +20,11 @@ fi
 if [ ! -z "$2" ]
   then
     nruns=$2
+fi
+
+if [ ! -z "$3" ]
+  then
+    abruptend=$3
 fi
 
 cd ${kubernetescode}/benchmarks/parsec
@@ -47,7 +53,7 @@ do
     fi
 
     # Conducting test nruns times and collecting the results whenever the processing is finished
-    i=1
+    i=${abruptend}
     while [ "$i" -le "$nruns" ]
     do
       # Preparing for the run

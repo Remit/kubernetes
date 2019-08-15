@@ -13,6 +13,7 @@
 kubernetescode='.'
 qosclasses=besteffort,burstable,guaranteed
 sizes=simsmall,simmedium,simlarge
+programs=blackscholes,bodytrack,canneal,dedup,facesim,ferret,fluidanimate,freqmine,raytrace,streamcluster,swaptions,vips,x264
 # also should use native but with smaller number of runs as each test can be (10-30 mins)
 
 if [ ! -z "$1" ]
@@ -36,9 +37,9 @@ fi
 
 if [ $(ls /usr/bin/ | grep Rscript) = "Rscript" ]; then
   sudo Rscript ParsecYamlGeneration.R \
-  --templatefile=${kubernetescode}/scripts/template.yaml \
-  --yamldir=${kubernetescode}/benchmarks/parsec \
-  --programs=blackscholes,bodytrack,canneal,dedup,facesim,ferret,fluidanimate,freqmine,raytrace,streamcluster,swaptions,vips,x264 \
+  --templatefile=$kubernetescode/scripts/template.yaml \
+  --yamldir=$kubernetescode/benchmarks/parsec \
+  --programs=$programs \
   --sizes=$sizes \
   --qos=$qosclasses \
   --labels=separate,numaaware,stackposaware \

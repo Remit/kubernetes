@@ -42,8 +42,8 @@ if((length(benchmarkpath) == 0) || (length(analysispath) == 0)) {
     
     log.content <- readLines(paste0(testdir,"/",logfilename))
     
-    benchmark.program <- trimws(strsplit(log.content[grepl("Benchmarks to run:", log.content)], ":")[[1]][2])
-    benchmark.input <- trimws(strsplit(log.content[grepl("Unpacking benchmark input", log.content)], "'")[[1]][2])
+    #benchmark.program <- trimws(strsplit(log.content[grepl("Benchmarks to run:", log.content)], ":")[[1]][2])
+    #benchmark.input <- trimws(strsplit(log.content[grepl("Unpacking benchmark input", log.content)], "'")[[1]][2])
     
     #optionsnum <- as.numeric(trimws(strsplit(log.content[grepl("Num of Options", log.content)], ":")[[1]][2]))
     #runsnum <- as.numeric(trimws(strsplit(log.content[grepl("Num of Runs", log.content)], ":")[[1]][2]))
@@ -58,8 +58,8 @@ if((length(benchmarkpath) == 0) || (length(analysispath) == 0)) {
     timesys <- get.execution.time.from.string(timesys.str)
     
     data.frame(suite = "parsec",
-               benchmark.program = benchmark.program,
-               benchmark.input = benchmark.input,
+               #benchmark.program = benchmark.program,
+               #benchmark.input = benchmark.input,
                testrunid = testrunid,
                #optionsnum = optionsnum,
                #runsnum = runsnum,
@@ -135,7 +135,15 @@ if((length(benchmarkpath) == 0) || (length(analysispath) == 0)) {
       }
     }
     
+    splitted.path <- strsplit(testdir, "/")[[1]]
+    testdir.clean <- splitted.path[length(splitted.path)]
+    testdir.clean.splitted <- strsplit(testdir.clean, "-")[[1]]
+    benchmark.program <- testdir.clean.splitted[1]
+    benchmark.input <- testdir.clean.splitted[2]
+    
     test.df <- cbind(test.df,
+                     benchmark.program = rep(benchmark.program, nrow(test.df)),
+                     benchmark.input = rep(benchmark.input, nrow(test.df)),
                      qos.class = rep(qos.class, nrow(test.df)),
                      separate.socket.pol = rep(separate.socket.pol, nrow(test.df)),
                      numaaware.numa.pol = rep(numaaware.numa.pol, nrow(test.df)),
