@@ -176,7 +176,11 @@ if((length(benchmarkpath) == 0) || (length(analysispath) == 0)) {
     
     benchmark.program <- test.combination["benchmark.program"]
     benchmark.input <- test.combination["benchmark.input"]
-    full.tests.df.filtered <- full.tests.df[(full.tests.df$benchmark.program == benchmark.program) & (full.tests.df$benchmark.input == benchmark.input), ]
+    index.filter <- (full.tests.df$benchmark.program == benchmark.program) & (full.tests.df$benchmark.input == benchmark.input)
+    full.tests.df.filtered <- full.tests.df[index.filter, ]
+    print("*************************************")
+    print(test.combination)
+    print(full.tests.df.filtered)
     
     params.combinations <- as.data.frame(gtools::permutations(2, 3, c(TRUE, FALSE), repeats.allowed = TRUE))[2:8,]
     names(params.combinations) <- c("separate.socket.pol", "numaaware.numa.pol", "stackposaware.stack.pol")
