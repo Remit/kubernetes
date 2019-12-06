@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # The script is executed to compile Kubernetes for the first time
 # Arguments:
 # 1 - path to kubernetes code
