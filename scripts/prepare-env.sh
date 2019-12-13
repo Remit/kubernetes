@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # The script:
 # - installs tools necessary for development in Kubernetes
 # - sets up settings for Kubernetes to run
@@ -11,6 +11,9 @@ kubernetescode='.'
 if [ ! -z "$1" ]
   then
     kubernetescode=$1
+  else
+    echo "You did not specify the path to the Kubernetes code. Exiting..."
+    exit 1
 fi
 
 cd $(kubernetescode)
@@ -24,22 +27,22 @@ echo "[$(date)] golang installed"
 
 # Installing make
 echo "[$(date)] Installing make..."
-sudo apt install make
+sudo apt -y install make
 echo "[$(date)] make installed"
 
 # Installing gcc
 echo "[$(date)] Installing gcc..."
-sudo apt install gcc
+sudo apt -y install gcc
 echo "[$(date)] gcc installed"
 
 # Installing Docker CE
 echo "[$(date)] Installing Docker CE..."
 sudo apt-get update
-sudo apt-get install apt-transport-https ca-certificates curl gnupg-agent software-properties-common
+sudo apt-get -y install apt-transport-https ca-certificates curl gnupg-agent software-properties-common
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
 sudo apt-get update
-sudo apt-get install docker-ce docker-ce-cli containerd.io
+sudo apt-get -y install docker-ce docker-ce-cli containerd.io
 echo "[$(date)] Docker CE installed"
 
 # Installing etcd
@@ -78,7 +81,7 @@ echo "[$(date)] Custom kubelet service is prepared"
 
 # Installing R for analysis and benchmark generation scripts
 echo "[$(date)] Installing R for benchmark configs generation and results analysis..."
-sudo apt-get install r-base
+sudo apt-get -y install r-base
 sudo chmod o+w /usr/local/lib/R/site-library/
 echo "install.packages(\"readr\", repos=\"https://cran.rstudio.com\")" | R --no-save
 echo "install.packages(\"data.table\", repos=\"https://cran.rstudio.com\")" | R --no-save

@@ -52,7 +52,7 @@ sudo echo "KUBELET_EXTRA_ARGS=--cpu-manager-policy=$cpupolicy --v=4 --kube-reser
 # To avoid troubles with Calico
 sudo rm -rf /var/lib/cni/
 
-sudo kubeadm init --apiserver-advertise-address $initaddress --pod-network-cidr $initaddress/24
+sudo kubeadm init --apiserver-advertise-address $initaddress --pod-network-cidr $initaddress/24 --kubernetes-version 1.15.6
 sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.8/manifests/calico.yaml
 # In case of issues with Calico - https://github.com/projectcalico/calico/issues/2699
 # Here we enable some ports to be used when exposing pod ports via services for convenience
