@@ -35,6 +35,11 @@ echo "[$(date)] Installing gcc..."
 sudo apt -y install gcc
 echo "[$(date)] gcc installed"
 
+# Installing socat
+echo "[$(date)] Installing socat..."
+sudo apt-get -y install socat
+echo "[$(date)] socat installed"
+
 # Installing Docker CE
 echo "[$(date)] Installing Docker CE..."
 sudo apt-get update
