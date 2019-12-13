@@ -52,6 +52,12 @@ sudo echo "KUBELET_EXTRA_ARGS=--cpu-manager-policy=$cpupolicy --v=4 --kube-reser
 # To avoid troubles with Calico
 sudo rm -rf /var/lib/cni/
 
+# If the private IP address is used as advertised address of the apiserver, then the following lines might need to be uncommented
+# sudo ifconfig lo 192.168.10.10 # Changing main loopback IP address
+# sudo ifconfig lo:0 127.0.0.1 # Adding another loopback for etcd to run (standard)
+
+# You might also need to add this line to /etc/hosts (assuming that the name of machine is ubuntu-bionic): 192.168.10.10   ubuntu-bionic   localhost
+
 sudo kubeadm init --apiserver-advertise-address $initaddress --pod-network-cidr $initaddress/24 --kubernetes-version 1.15.6
 sudo kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.8/manifests/calico.yaml
 # In case of issues with Calico - https://github.com/projectcalico/calico/issues/2699
